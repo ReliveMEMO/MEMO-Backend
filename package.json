@@ -1,0 +1,30 @@
+{
+  "name": "memo-backend",
+  "version": "1.0.0",
+  "description": "MEMO - Collaborative Timeline Social Media | BackEnd",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ReliveMEMO/MEMO-Backend.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/ReliveMEMO/MEMO-Backend/issues"
+  },
+  "homepage": "https://github.com/ReliveMEMO/MEMO-Backend#readme",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.47.10",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "socket.io": "^4.8.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.9"
+  }
+}
