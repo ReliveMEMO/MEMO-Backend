@@ -1,5 +1,5 @@
 const { encrypt } = require('../utils/encryption');
-const { findOrCreateChat, appendMessage } = require('../models/messageModel');
+const { findOrCreateChat, appendMessage, insertMessage } = require('../models/messageModel');
 
 async function sendMessage(req, res) {
     const { senderId, receiverId, message } = req.body;
@@ -15,7 +15,7 @@ async function sendMessage(req, res) {
     if (chatError) return res.status(500).json({ error: chatError.message });
 
     const messageObject = { [timestamp]: encryptedMessage };
-    const { data, error } = await appendMessage(chatId, messageObject);
+    const { data, error } = await insertMessage(chatId,senderId, messageObject);
 
     if (error) return res.status(500).json({ error: error.message });
 
