@@ -7,22 +7,35 @@ async function findOrCreateChat(senderId, receiverId) {
 
     // Check if the chat already exists
     let { data, error } = await supabase
-        .from('message_table')
+        .from('ind_chat_table')
         .select('*')
-        .eq('sender_id', participants[0])
-        .eq('receiver_id', participants[1])
+        .eq('user1', participants[0])
+        .eq('user2', participants[1])
         .single();
 
     if (error && error.code === 'PGRST116') {
         // Chat does not exist; create a new one
-        ({ data, error } = await supabase.from('message_table').insert({
-            sender_id: participants[0],
-            receiver_id: participants[1],
-            content: []
+        ({ data, error } = await supabase.from('ind_chat_table').insert({
+            user1: participants[0],
+            user2: participants[1],
         }).select('*').single());
     }
 
     return { chatId: data?.chat_id, error };
+}
+
+async function insertMessage(chatId, senderId, content) {
+    const { data, error } = await supabase
+        .from('ind_message_table')
+        .insert({ chat_id: chatId, sender_id: senderId, message: content })
+        .select('*')
+        .single();
+
+        if (error) {
+            console.error("Error inserting message:", error);
+        }
+
+    return { data, error };
 }
 
 async function appendMessage(chatId, messageObject) {
@@ -68,4 +81,4 @@ async function appendMessage(chatId, messageObject) {
 
 
 
-module.exports = { findOrCreateChat, appendMessage };
+module.exports = { findOrCreateChat, appendMessage, insertMessage };

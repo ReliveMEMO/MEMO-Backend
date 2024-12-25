@@ -2,7 +2,7 @@ const express = require('express');
 const http = require('http');
 const WebSocket = require('ws');
 const { encrypt, decrypt } = require('./utils/encryption');
-const { findOrCreateChat, appendMessage, markAsReceived } = require('./models/messageModel');
+const { findOrCreateChat, appendMessage, markAsReceived, insertMessage } = require('./models/messageModel');
 require('dotenv').config();
 
 const app = express();
@@ -38,7 +38,7 @@ wss.on('connection', (ws, req) => {
                 if (chatError) throw chatError;
 
                 const messageObject = { [timestamp]: encryptedMessage };
-                const { data: dbData, error: dbError } = await appendMessage(chatId, messageObject);
+                const { data: dbData, error: dbError } = await insertMessage(chatId,senderId, messageObject);
                 if (dbError) throw dbError;
 
                 const decryptedMessage = decrypt(encryptedMessage);
