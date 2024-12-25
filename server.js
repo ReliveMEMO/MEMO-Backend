@@ -1,6 +1,10 @@
 const express = require('express');
 const http = require('http');
 const WebSocket = require('ws');
+//grp
+const { setupWebSocket } = require('./utils/grpWebSockets');
+const messageRoutes = require('./routes/grpMessageRoutes');
+//...
 const { encrypt, decrypt } = require('./utils/encryption');
 const { findOrCreateChat, appendMessage, markAsReceived } = require('./models/messageModel');
 require('dotenv').config();
@@ -11,7 +15,16 @@ const wss = new WebSocket.Server({ server });
 
 app.use(express.json());
 app.use('/api/messages', require('./routes/messageRoutes'));
+//grp
+app.use('/api/messages', grpMessageRoutes);
 
+setupWebSocket(wss);
+
+server.listen(process.env.PORT, () => {
+    console.log(`Server running on port ${process.env.PORT}`);
+});
+
+//...
 const connections = new Map(); // Map to store WebSocket connections by user ID
 
 wss.on('connection', (ws, req) => {
