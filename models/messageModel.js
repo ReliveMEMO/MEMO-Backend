@@ -68,5 +68,4 @@ async function appendMessage(chatId, messageObject) {
 
 
 
-
 module.exports = { findOrCreateChat, appendMessage };
