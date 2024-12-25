@@ -1,23 +1,72 @@
 const supabase = require('../config/supabase');
+//const { v4: uuidv4 } = require('uuid');
 
-async function createMessagesBatch(messages) {
-    console.log("Batch Data to Save:", messages); // Log the batch data
-    const { data, error } = await supabase.from('message_table').insert(messages);
-    if (error) {
-        console.error("Supabase Insert Error:", error); // Log any Supabase errors
-    } else {
-        console.log("Supabase Insert Response:", data); // Log the response
-    }
-    return { data, error };
-}
+async function findOrCreateChat(senderId, receiverId) {
+    // Ensure consistent order for senderId and receiverId
+    const participants = [senderId, receiverId].sort();
 
-async function getMessages(receiverId) {
-    const { data, error } = await supabase
+    // Check if the chat already exists
+    let { data, error } = await supabase
         .from('message_table')
         .select('*')
-        .eq('receiver_id', receiverId)
-        .order('created_at', { ascending: true });
+        .eq('sender_id', participants[0])
+        .eq('receiver_id', participants[1])
+        .single();
+
+    if (error && error.code === 'PGRST116') {
+        // Chat does not exist; create a new one
+        ({ data, error } = await supabase.from('message_table').insert({
+            sender_id: participants[0],
+            receiver_id: participants[1],
+            content: []
+        }).select('*').single());
+    }
+
+    return { chatId: data?.chat_id, error };
+}
+
+async function appendMessage(chatId, messageObject) {
+    // Fetch the current content for the chat ID
+    const { data: currentData, error: fetchError } = await supabase
+        .from('message_table')
+        .select('content')
+        .eq('chat_id', chatId)
+        .single();
+
+    if (fetchError) {
+        console.error("Error fetching current content:", fetchError);
+        return { data: null, error: fetchError };
+    }
+
+    // Ensure current content is an array
+    const currentContent = Array.isArray(currentData?.content) ? currentData.content : [];
+
+    // Debugging
+    console.log("Current Content:", currentContent);
+
+    // Append the new message object
+    const updatedContent = [...currentContent, messageObject];
+
+    // Debugging
+    console.log("Updated Content:", updatedContent);
+
+    // Update the content column in the database
+    const { data, error } = await supabase
+        .from('message_table')
+        .update({ content: updatedContent })
+        .eq('chat_id', chatId)
+        .select('*');
+
+    if (error) {
+        console.error("Error updating content:", error);
+    }
+
     return { data, error };
 }
 
-module.exports = { createMessagesBatch, getMessages };
+
+
+
+
+
+module.exports = { findOrCreateChat, appendMessage };

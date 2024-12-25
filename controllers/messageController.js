@@ -1,30 +1,54 @@
-const { encrypt, decrypt } = require('../utils/encryption');
-const { createMessagesBatch, getMessages } = require('../models/messageModel');
+const { encrypt } = require('../utils/encryption');
+const { findOrCreateChat, appendMessage } = require('../models/messageModel');
 
-async function sendMessagesBatch(req, res) {
-    const { messages } = req.body; // Array of { senderId, receiverId, message }
-    const encryptedMessages = messages.map(msg => ({
-        sender_id: msg.senderId,
-        receiver_id: msg.receiverId,
-        encrypted_message: encrypt(msg.message)
-    }));
+// async function sendMessage(req, res) {
+//     const { senderId, receiverId, message } = req.body;
+//     const timestamp = new Date().toISOString();
+//     const encryptedMessage = encrypt(message);
 
-    console.log("Encrypted Messages to Insert:", encryptedMessages); // Debug the batch
+//     const { chatId, error: chatError } = await findOrCreateChat(senderId, receiverId);
+//     if (chatError) return res.status(500).json({ error: chatError.message });
 
-    const { data, error } = await createMessagesBatch(encryptedMessages);
-    if (error) return res.status(500).json({ error });
+//     const messageObject = { [timestamp]: encryptedMessage };
+//     const { data, error } = await appendMessage(chatId, senderId, receiverId, messageObject);
+//     if (error) return res.status(500).json({ error: error.message });
+
+//     res.status(200).json({ data });
+// }
+
+async function sendMessage(req, res) {
+    const { senderId, receiverId, message } = req.body;
+
+    // Debugging
+    console.log("Sender ID:", senderId);
+    console.log("Receiver ID:", receiverId);
+    console.log("Message to encrypt:", message);
+
+    if (!message || typeof message !== 'string') {
+        return res.status(400).json({ error: "Invalid message. It must be a non-empty string." });
+    }
+
+    const timestamp = new Date().toISOString();
+    const encryptedMessage = encrypt(message);
+
+    const { chatId, error: chatError } = await findOrCreateChat(senderId, receiverId);
+    if (chatError) {
+        console.error("Chat creation error:", chatError);
+        return res.status(500).json({ error: chatError.message });
+    }
+
+    const messageObject = { [timestamp]: encryptedMessage };
+    console.log("Message Object to append:", messageObject);
+
+    const { data, error } = await appendMessage(chatId, messageObject);
+
+    if (error) {
+        console.error("Error appending message:", error);
+        return res.status(500).json({ error: error.message });
+    }
+
     res.status(200).json({ data });
 }
 
-async function fetchMessages(req, res) {
-    const { receiverId } = req.params;
-    const { data, error } = await getMessages(receiverId);
-    if (error) return res.status(500).json({ error });
-    const decryptedMessages = data.map(msg => ({
-        ...msg,
-        decrypted_message: decrypt(msg.encrypted_message)
-    }));
-    res.status(200).json({ data: decryptedMessages });
-}
 
-module.exports = { sendMessagesBatch, fetchMessages };
+module.exports = { sendMessage };

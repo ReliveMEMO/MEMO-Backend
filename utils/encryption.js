@@ -1,12 +1,16 @@
 const crypto = require('crypto');
-require('dotenv').config();
+require('dotenv').config(); // Ensure this line exists
+//const secretKey = process.env.SECRET_KEY;
+
 
 let secretKey = process.env.SECRET_KEY;
+
+console.log("SECRET_KEY in encryption.js:", secretKey);
+
+// Ensure the key is exactly 32 bytes for AES-256
 if (secretKey.length < 32) {
-    // Pad the key if it's too short
     secretKey = secretKey.padEnd(32, '0');
 } else if (secretKey.length > 32) {
-    // Trim the key if it's too long
     secretKey = secretKey.slice(0, 32);
 }
 
