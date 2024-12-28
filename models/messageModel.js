@@ -19,9 +19,55 @@ async function findOrCreateChat(senderId, receiverId) {
             user1: participants[0],
             user2: participants[1],
         }).select('*').single());
+
+        if (error) {
+            console.error("Error fetching chat:", error);
+        } else {
+            console.log("Fetched chat data:", data);
+        }
+
+        console.log("Chat creation data:", data);
+
+        if (data) {
+            const chatId = data.chat_id;
+            await updateUserChats(participants[0], chatId);
+            await updateUserChats(participants[1], chatId);
+        }
     }
 
     return { chatId: data?.chat_id, error };
+}
+
+async function updateUserChats(userId, chatId) {
+    const { data, error } = await supabase
+        .from('User_Info')
+        .select('chats')
+        .eq('id', userId)
+        .single();
+
+    if (error) {
+        console.error(`Error fetching chats for user ${userId}:`, error);
+        return;
+    }
+
+    console.log(`Fetched chats for user ${userId}:`, data?.chats);
+
+    const currentChats = data?.chats ?? [];
+    const updatedChats = [chatId, ...currentChats];
+
+    console.log(`Updated chats for user ${userId}:`, updatedChats);
+
+
+    const { error: updateError } = await supabase
+        .from('User_Info')
+        .update({ chats: updatedChats })
+        .eq('id', userId);
+
+        if (updateError) {
+            console.error(`Error updating chats for user ${userId}:`, updateError);
+        } else {
+            console.log(`Successfully updated chats for user ${userId}`);
+        }
 }
 
 async function insertMessage(chatId, senderId, content) {
