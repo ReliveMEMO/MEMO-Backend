@@ -14,7 +14,7 @@ async function sendMessage(req, res) {
     const { chatId, error: chatError } = await findOrCreateChat(senderId, receiverId);
     if (chatError) return res.status(500).json({ error: chatError.message });
 
-    const messageObject = { [timestamp]: encryptedMessage };
+    const messageObject =  encryptedMessage;
     const { data, error } = await insertMessage(chatId,senderId, messageObject);
 
     if (error) return res.status(500).json({ error: error.message });

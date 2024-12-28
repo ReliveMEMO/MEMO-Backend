@@ -37,7 +37,7 @@ wss.on('connection', (ws, req) => {
                 const { chatId, error: chatError } = await findOrCreateChat(senderId, receiverId);
                 if (chatError) throw chatError;
 
-                const messageObject = { [timestamp]: encryptedMessage };
+                const messageObject = encryptedMessage;
                 const { data: dbData, error: dbError } = await insertMessage(chatId,senderId, messageObject);
                 if (dbError) throw dbError;
 
