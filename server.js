@@ -50,7 +50,7 @@ wss.on('connection', (ws, req) => {
                         JSON.stringify({
                             type: 'receiveMessage',
                             senderId,
-                            message: decryptedMessage,
+                            message: messageObject,
                             timestamp,
                         })
                     );
