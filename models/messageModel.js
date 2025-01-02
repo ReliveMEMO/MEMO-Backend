@@ -66,16 +66,19 @@ async function appendMessage(chatId, messageObject) {
 
 
 //group messaging part
+
 async function findOrCreateGroup(groupName) {
     let { data, error } = await supabase
-        .from('group_chats')
+        .from('Group_Table')
         .select('*')
         .eq('group_name', groupName)
         .single();
 
     if (error && error.code === 'PGRST116') {
-        ({ data, error } = await supabase.from('group_chats').insert({
-            group_name: groupName
+        ({ data, error } = await supabase.from('Group_Table').insert({
+            group_name: groupName,
+            created_at: new Date().toISOString(),
+            members: []
         }).select('*').single());
     }
 
@@ -84,20 +87,46 @@ async function findOrCreateGroup(groupName) {
 
 async function appendGroupMessage(groupId, messageObject) {
     const { data, error } = await supabase
-        .from('group_messages')
+        .from('grp_msg_table')
         .insert({
-            group_id: groupId,
+            grp_id: groupId,
             sender_id: messageObject.senderId,
             content: messageObject.content,
-            timestamp: messageObject.timestamp
+            time_of_msg: messageObject.time_of_msg
         })
         .select('*');
 
     return { data, error };
 }
 
+// async function findOrCreateGroup(groupName) {
+//     let { data, error } = await supabase
+//         .from('Group_Table')
+//         .select('*')
+//         .eq('group_name', groupName)
+//         .single();
 
+//     if (error && error.code === 'PGRST116') {
+//         ({ data, error } = await supabase.from('Group_Table').insert({
+//             group_name: groupName
+//         }).select('*').single());
+//     }
 
+//     return { groupId: data?.group_id, error };
+// }
 
+// async function appendGroupMessage(groupId, messageObject) {
+//     const { data, error } = await supabase
+//         .from('grp_msg_table')
+//         .insert({
+//             group_id: groupId,
+//             sender_id: messageObject.senderId,
+//             content: messageObject.content,
+//             time_of_msg: messageObject.time_of_msg
+//         })
+//         .select('*');
+
+//     return { data, error };
+// }
 
 module.exports = { findOrCreateChat, appendMessage, findOrCreateGroup, appendGroupMessage };

@@ -67,29 +67,48 @@ wss.on('connection', (ws, req) => {
                 );
             }
 
+//group messaging part
+            
             if (parsedData.type === 'sendGroupMessage') {
-                const { groupName, senderId, message } = parsedData;
+                // const { groupName, senderId, message } = parsedData;
 
-                const timestamp = new Date().toISOString();
+                // const time_of_msg = new Date().toISOString();
+                // const encryptedMessage = encrypt(message);
+
+                // const { groupId, error: groupError1 } = await findOrCreateGroup(groupName);
+                // if (groupError1) throw groupError1;
+
+                // if (!groupId) throw new Error("Group ID not found.");
+
+                // const messageObject = { senderId, content: { [time_of_msg]: encryptedMessage }, time_of_msg };
+                // const { data: dbData, error: dbError } = await appendGroupMessage(groupId, messageObject);
+                // if (dbError) throw dbError;
+
+                // const decryptedMessage = decrypt(encryptedMessage);
+
+                const { grp_id, senderId, message } = parsedData;
+
+                const time_of_msg = new Date().toISOString();
                 const encryptedMessage = encrypt(message);
 
-                const { groupId, error: groupError } = await findOrCreateGroup(groupName);
-                if (groupError) throw groupError;
+                if (!grp_id) throw new Error("Group ID is required.");
 
-                const messageObject = { senderId, content: { [timestamp]: encryptedMessage }, timestamp };
-                const { data: dbData, error: dbError } = await appendGroupMessage(groupId, messageObject);
+                const messageObject = { senderId, content: { [time_of_msg]: encryptedMessage }, time_of_msg };
+                const { data: dbData, error: dbError } = await appendGroupMessage(grp_id, messageObject);
                 if (dbError) throw dbError;
 
                 const decryptedMessage = decrypt(encryptedMessage);
 
                 // Send decrypted message to all group members
-                const { data: members, error: membersError } = await supabase
-                    .from('group_members')
-                    .select('user_id')
-                    .eq('group_id', groupId);
+                const { data: groupData, error: groupError2 } = await supabase
+                    .from('Group_Table')
+                    .select('members')
+                    .eq('group_id', groupId)
+                    .single();
 
-                if (membersError) throw membersError;
+                if (groupError2) throw groupError2;
 
+                const members = groupData.members;
                 members.forEach(member => {
                     const memberSocket = connections.get(member.user_id);
                     if (memberSocket) {
@@ -99,7 +118,7 @@ wss.on('connection', (ws, req) => {
                                 groupName,
                                 senderId,
                                 message: decryptedMessage,
-                                timestamp,
+                                time_of_msg,
                             })
                         );
                     }
@@ -110,11 +129,12 @@ wss.on('connection', (ws, req) => {
                     JSON.stringify({
                         status: 'Message sent',
                         groupId,
-                        timestamp,
+                        time_of_msg,
                         decryptedMessage,
                     })
                 );
             }
+
         } catch (err) {
             console.error('Error processing WebSocket message:', err);
             ws.send(JSON.stringify({ error: 'Invalid message format' }));
