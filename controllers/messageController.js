@@ -1,5 +1,5 @@
 const { encrypt } = require('../utils/encryption');
-const { findOrCreateChat, appendMessage } = require('../models/messageModel');
+const { findOrCreateChat, appendMessage, findOrCreateGroup, appendGroupMessage } = require('../models/messageModel');
 
 async function sendMessage(req, res) {
     const { senderId, receiverId, message } = req.body;
@@ -28,5 +28,32 @@ async function sendMessage(req, res) {
     });
 }
 
+//group messaging part
+async function sendGroupMessage(req, res) {
+    const { groupName, senderId, message } = req.body;
 
-module.exports = { sendMessage };
+    if (!message || typeof message !== 'string') {
+        return res.status(400).json({ error: "Invalid message. It must be a non-empty string." });
+    }
+
+    const timestamp = new Date().toISOString();
+    const encryptedMessage = encrypt(message);
+
+    const { groupId, error: groupError } = await findOrCreateGroup(groupName);
+    if (groupError) return res.status(500).json({ error: groupError.message });
+
+    const messageObject = { senderId, content: { [timestamp]: encryptedMessage }, timestamp };
+    const { data, error } = await appendGroupMessage(groupId, messageObject);
+
+    if (error) return res.status(500).json({ error: error.message });
+
+    res.status(200).json({
+        status: 'Message sent',
+        groupId,
+        timestamp,
+        message: encryptedMessage,
+    });
+}
+
+
+module.exports = { sendMessage, sendGroupMessage };
