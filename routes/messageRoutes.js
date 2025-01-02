@@ -4,6 +4,6 @@ const router = express.Router();
 
 router.post('/send', sendMessage);
 //group update
-router.post('/sendGroup', sendGroupMessage);
+//router.post('/sendGroup', sendGroupMessage);
 
 module.exports = router;
