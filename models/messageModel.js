@@ -64,8 +64,37 @@ async function appendMessage(chatId, messageObject) {
     return { data, error };
 }
 
+//Group message part
+const supabase = require('../config/supabase');
 
+async function findOrCreateGroup(groupName) {
+    let { data, error } = await supabase
+        .from('group_chats')
+        .select('*')
+        .eq('group_name', groupName)
+        .single();
 
+    if (error && error.code === 'PGRST116') {
+        ({ data, error } = await supabase.from('group_chats').insert({
+            group_name: groupName
+        }).select('*').single());
+    }
 
+    return { groupId: data?.group_id, error };
+}
 
-module.exports = { findOrCreateChat, appendMessage };
+async function appendGroupMessage(groupId, messageObject) {
+    const { data, error } = await supabase
+        .from('group_messages')
+        .insert({
+            group_id: groupId,
+            sender_id: messageObject.senderId,
+            content: messageObject.content,
+            timestamp: messageObject.timestamp
+        })
+        .select('*');
+
+    return { data, error };
+}
+
+module.exports = { findOrCreateChat, findOrCreateGroup, appendGroupMessage };
