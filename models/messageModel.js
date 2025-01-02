@@ -123,8 +123,3 @@ async function appendMessage(chatId, messageObject) {
     return { data, error };
 }
 
-
-
-
-
-module.exports = { findOrCreateChat, appendMessage, insertMessage };
