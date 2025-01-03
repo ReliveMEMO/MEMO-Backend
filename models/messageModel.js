@@ -7,22 +7,81 @@ async function findOrCreateChat(senderId, receiverId) {
 
     // Check if the chat already exists
     let { data, error } = await supabase
-        .from('message_table')
+        .from('ind_chat_table')
         .select('*')
-        .eq('sender_id', participants[0])
-        .eq('receiver_id', participants[1])
+        .eq('user1', participants[0])
+        .eq('user2', participants[1])
         .single();
 
     if (error && error.code === 'PGRST116') {
         // Chat does not exist; create a new one
-        ({ data, error } = await supabase.from('message_table').insert({
-            sender_id: participants[0],
-            receiver_id: participants[1],
-            content: []
+        ({ data, error } = await supabase.from('ind_chat_table').insert({
+            user1: participants[0],
+            user2: participants[1],
         }).select('*').single());
+
+        if (error) {
+            console.error("Error fetching chat:", error);
+        } else {
+            console.log("Fetched chat data:", data);
+        }
+
+        console.log("Chat creation data:", data);
+
+        if (data) {
+            const chatId = data.chat_id;
+            await updateUserChats(participants[0], chatId);
+            await updateUserChats(participants[1], chatId);
+        }
     }
 
     return { chatId: data?.chat_id, error };
+}
+
+async function updateUserChats(userId, chatId) {
+    const { data, error } = await supabase
+        .from('User_Info')
+        .select('chats')
+        .eq('id', userId)
+        .single();
+
+    if (error) {
+        console.error(`Error fetching chats for user ${userId}:`, error);
+        return;
+    }
+
+    console.log(`Fetched chats for user ${userId}:`, data?.chats);
+
+    const currentChats = data?.chats ?? [];
+    const updatedChats = [chatId, ...currentChats];
+
+    console.log(`Updated chats for user ${userId}:`, updatedChats);
+
+
+    const { error: updateError } = await supabase
+        .from('User_Info')
+        .update({ chats: updatedChats })
+        .eq('id', userId);
+
+        if (updateError) {
+            console.error(`Error updating chats for user ${userId}:`, updateError);
+        } else {
+            console.log(`Successfully updated chats for user ${userId}`);
+        }
+}
+
+async function insertMessage(chatId, senderId, content) {
+    const { data, error } = await supabase
+        .from('ind_message_table')
+        .insert({ chat_id: chatId, sender_id: senderId, message: content })
+        .select('*')
+        .single();
+
+        if (error) {
+            console.error("Error inserting message:", error);
+        }
+
+    return { data, error };
 }
 
 async function appendMessage(chatId, messageObject) {
@@ -65,68 +124,7 @@ async function appendMessage(chatId, messageObject) {
 }
 
 
-//group messaging part
 
-async function findOrCreateGroup(groupName) {
-    let { data, error } = await supabase
-        .from('Group_Table')
-        .select('*')
-        .eq('group_name', groupName)
-        .single();
 
-    if (error && error.code === 'PGRST116') {
-        ({ data, error } = await supabase.from('Group_Table').insert({
-            group_name: groupName,
-            created_at: new Date().toISOString(),
-            members: []
-        }).select('*').single());
-    }
 
-    return { groupId: data?.group_id, error };
-}
-
-async function appendGroupMessage(groupId, messageObject) {
-    const { data, error } = await supabase
-        .from('grp_msg_table')
-        .insert({
-            grp_id: groupId,
-            sender_id: messageObject.senderId,
-            content: messageObject.content,
-            time_of_msg: messageObject.time_of_msg
-        })
-        .select('*');
-
-    return { data, error };
-}
-
-// async function findOrCreateGroup(groupName) {
-//     let { data, error } = await supabase
-//         .from('Group_Table')
-//         .select('*')
-//         .eq('group_name', groupName)
-//         .single();
-
-//     if (error && error.code === 'PGRST116') {
-//         ({ data, error } = await supabase.from('Group_Table').insert({
-//             group_name: groupName
-//         }).select('*').single());
-//     }
-
-//     return { groupId: data?.group_id, error };
-// }
-
-// async function appendGroupMessage(groupId, messageObject) {
-//     const { data, error } = await supabase
-//         .from('grp_msg_table')
-//         .insert({
-//             group_id: groupId,
-//             sender_id: messageObject.senderId,
-//             content: messageObject.content,
-//             time_of_msg: messageObject.time_of_msg
-//         })
-//         .select('*');
-
-//     return { data, error };
-// }
-
-module.exports = { findOrCreateChat, appendMessage, findOrCreateGroup, appendGroupMessage };
+module.exports = { findOrCreateChat, appendMessage, insertMessage };
