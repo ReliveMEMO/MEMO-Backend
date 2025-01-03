@@ -23,6 +23,7 @@
     "@supabase/supabase-js": "^2.47.10",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
+    "firebase-admin": "^13.0.2",
     "socket.io": "^4.8.1",
     "uuid": "^11.0.3",
     "ws": "^8.18.0"
