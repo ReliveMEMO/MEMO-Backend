@@ -3,6 +3,7 @@ const http = require('http');
 const WebSocket = require('ws');
 const { encrypt, decrypt } = require('./utils/encryption');
 const { findOrCreateChat, appendMessage, markAsReceived, insertMessage } = require('./models/messageModel');
+
 const { findOrCreateGroup, appendGroupMessage } = require('./models/messageModel');
 require('dotenv').config();
 
@@ -69,7 +70,7 @@ wss.on('connection', (ws, req) => {
                     })
                 );
             }
-            
+
         } catch (err) {
             console.error('Error processing WebSocket message:', err);
             ws.send(JSON.stringify({ error: 'Invalid message format' }));
