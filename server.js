@@ -3,6 +3,7 @@ const http = require('http');
 const WebSocket = require('ws');
 const { encrypt, decrypt } = require('./utils/encryption');
 const { findOrCreateChat, appendMessage, markAsReceived, insertMessage } = require('./models/messageModel');
+const { handlePushNotification } = require('./middleware/pushNotificationService');
 require('dotenv').config();
 
 const app = express();
@@ -57,6 +58,9 @@ wss.on('connection', (ws, req) => {
                             timestamp,
                         })
                     );
+                }
+                else {
+                    await handlePushNotification(chatId, senderId, receiverId, message);
                 }
 
                 // Send confirmation back to sender
