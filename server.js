@@ -3,8 +3,9 @@ const http = require('http');
 const WebSocket = require('ws');
 const { encrypt, decrypt } = require('./utils/encryption');
 const { findOrCreateChat, appendMessage, markAsReceived, insertMessage } = require('./models/messageModel');
-
+const { handlePushNotification } = require('./middleware/pushNotificationService');
 const { findOrCreateGroup, appendGroupMessage } = require('./models/messageModel');
+
 require('dotenv').config();
 
 const app = express();
@@ -14,6 +15,9 @@ const groupWss = new WebSocket.Server({ noServer: true });
 
 app.use(express.json());
 app.use('/api/messages', require('./routes/messageRoutes'));
+
+// Add this line to include the fcmController routes
+app.use('/api', require('./controllers/fcmController'));
 
 const connections = new Map(); // Map to store WebSocket connections by user ID
 const groupConnections = new Map(); // Map to store WebSocket connections for group messages by user ID
@@ -58,6 +62,9 @@ wss.on('connection', (ws, req) => {
                             timestamp,
                         })
                     );
+                }
+                else {
+                    await handlePushNotification(chatId, senderId, receiverId, message);
                 }
 
                 // Send confirmation back to sender
@@ -173,6 +180,8 @@ server.on('upgrade', (request, socket, head) => {
 
 server.listen(process.env.PORT, () => {
     console.log(`Server running on port ${process.env.PORT}`);
+});
+
 });
 
 
