@@ -1,25 +1,6 @@
 const supabase = require('../config/supabase');
 
 // Log a new call
-// async function logCall(callerId, calleeId, status) {
-//     try {
-//         const { data, error } = await supabase
-//             .from('ind_calls_table')
-//             .insert([
-//                 {
-//                     caller_id: callerId,
-//                     callee_id: calleeId,
-//                     status: status,
-//                 },
-//             ]);
-//         if (error) throw error;
-//         return data;
-//     } catch (err) {
-//         console.error('Error logging call:', err);
-//         throw err;
-//     }
-// }
-
 async function logCall(callerId, calleeId, status) {
     try {
         const { data, error } = await supabase
