@@ -37,4 +37,20 @@ async function updateCallStatus(callId, status) {
     }
 }
 
-module.exports = { logCall, updateCallStatus };
+// Get the current call status
+async function getCallStatus(callId) {
+    try {
+        const { data, error } = await supabase
+            .from('ind_calls_table')
+            .select('status')
+            .eq('id', callId)
+            .single(); // Expect a single result
+        if (error) throw error;
+        return data.status; // Return the status field
+    } catch (err) {
+        console.error('Error fetching call status:', err);
+        throw err;
+    }
+}
+
+module.exports = { logCall, updateCallStatus , getCallStatus};
