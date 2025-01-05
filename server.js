@@ -91,92 +91,92 @@ wss.on('connection', (ws, req) => {
 });
 
 // Group chat
-groupWss.on('connection', (ws, req) => {
-    let userId;
+// groupWss.on('connection', (ws, req) => {
+//     let userId;
 
-    ws.on('message', async (data) => {
-        try {
-            const parsedData = JSON.parse(data);
+//     ws.on('message', async (data) => {
+//         try {
+//             const parsedData = JSON.parse(data);
 
-            if (parsedData.type === 'register') {
-                userId = parsedData.userId;
-                groupConnections.set(userId, ws);
-                console.log(`User registered for group messages with ID: ${userId}`);
-                return;
-            }
+//             if (parsedData.type === 'register') {
+//                 userId = parsedData.userId;
+//                 groupConnections.set(userId, ws);
+//                 console.log(`User registered for group messages with ID: ${userId}`);
+//                 return;
+//             }
 
-            if (parsedData.type === 'sendGroupMessage') {
-                const { grp_id, senderId, message } = parsedData;
+//             if (parsedData.type === 'sendGroupMessage') {
+//                 const { grp_id, senderId, message } = parsedData;
 
-                const time_of_msg = new Date().toISOString();
-                const encryptedMessage = encrypt(message);
+//                 const time_of_msg = new Date().toISOString();
+//                 const encryptedMessage = encrypt(message);
 
-                if (!grp_id) throw new Error("Group ID is required.");
+//                 if (!grp_id) throw new Error("Group ID is required.");
 
-                const messageObject = { senderId, content: { [time_of_msg]: encryptedMessage }, time_of_msg };
-                const { data: dbData, error: dbError } = await appendGroupMessage(grp_id, messageObject);
-                if (dbError) throw dbError;
+//                 const messageObject = { senderId, content: { [time_of_msg]: encryptedMessage }, time_of_msg };
+//                 const { data: dbData, error: dbError } = await appendGroupMessage(grp_id, messageObject);
+//                 if (dbError) throw dbError;
 
-                const decryptedMessage = decrypt(encryptedMessage);
+//                 const decryptedMessage = decrypt(encryptedMessage);
 
-                // Send decrypted message to all group members
-                const { data: groupData, error: groupError } = await supabase
-                    .from('Group_Table')
-                    .select('members')
-                    .eq('group_id', grp_id)
-                    .single();
+//                 // Send decrypted message to all group members
+//                 const { data: groupData, error: groupError } = await supabase
+//                     .from('Group_Table')
+//                     .select('members')
+//                     .eq('group_id', grp_id)
+//                     .single();
 
-                if (groupError) throw groupError;
+//                 if (groupError) throw groupError;
 
-                const members = groupData.members;
-                members.forEach(member => {
-                    const memberSocket = groupConnections.get(member.user_id);
-                    if (memberSocket) {
-                        memberSocket.send(
-                            JSON.stringify({
-                                type: 'receiveGroupMessage',
-                                groupName: parsedData.groupName,
-                                senderId,
-                                message: decryptedMessage,
-                                time_of_msg,
-                            })
-                        );
-                    }
-                });
+//                 const members = groupData.members;
+//                 members.forEach(member => {
+//                     const memberSocket = groupConnections.get(member.user_id);
+//                     if (memberSocket) {
+//                         memberSocket.send(
+//                             JSON.stringify({
+//                                 type: 'receiveGroupMessage',
+//                                 groupName: parsedData.groupName,
+//                                 senderId,
+//                                 message: decryptedMessage,
+//                                 time_of_msg,
+//                             })
+//                         );
+//                     }
+//                 });
 
-                 // Send confirmation back to sender
-                 ws.send(
-                    JSON.stringify({
-                        status: 'Message sent',
-                        groupId: grp_id,
-                        time_of_msg,
-                        decryptedMessage,
-                    })
-                );
-            }
-        } catch (err) {
-            console.error('Error processing WebSocket message:', err);
-            ws.send(JSON.stringify({ error: 'Invalid message format' }));
-        }
-    });
+//                  // Send confirmation back to sender
+//                  ws.send(
+//                     JSON.stringify({
+//                         status: 'Message sent',
+//                         groupId: grp_id,
+//                         time_of_msg,
+//                         decryptedMessage,
+//                     })
+//                 );
+//             }
+//         } catch (err) {
+//             console.error('Error processing WebSocket message:', err);
+//             ws.send(JSON.stringify({ error: 'Invalid message format' }));
+//         }
+//     });
 
-    ws.on('close', () => {
-        console.log('User disconnected from group messages:', userId);
-        groupConnections.delete(userId);
-    });
-});
+//     ws.on('close', () => {
+//         console.log('User disconnected from group messages:', userId);
+//         groupConnections.delete(userId);
+//     });
+// });
 
-server.on('upgrade', (request, socket, head) => {
-    const pathname = request.url;
+// server.on('upgrade', (request, socket, head) => {
+//     const pathname = request.url;
 
-    if (pathname === '/group-messages') {
-        groupWss.handleUpgrade(request, socket, head, (ws) => {
-            groupWss.emit('connection', ws, request);
-        });
-    } else {
-        socket.destroy();
-    }
-});
+//     if (pathname === '/group-messages') {
+//         groupWss.handleUpgrade(request, socket, head, (ws) => {
+//             groupWss.emit('connection', ws, request);
+//         });
+//     } else {
+//         socket.destroy();
+//     }
+// });
 
 server.listen(process.env.PORT, () => {
     console.log(`Server running on port ${process.env.PORT}`);
