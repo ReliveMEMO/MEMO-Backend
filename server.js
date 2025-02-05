@@ -1,6 +1,7 @@
 const express = require('express');
 const http = require('http');
 const WebSocket = require('ws');
+const { createClient } = require('@supabase/supabase-js');
 const { encrypt, decrypt } = require('./utils/encryption');
 const { findOrCreateChat, insertMessage, appendGroupMessage} = require('./models/messageModel');
 const { logCall, updateCallStatus, getCallStatus } = require('./models/callModel');
@@ -20,6 +21,11 @@ const groupWss = new WebSocket.Server({ noServer: true });
 const messagingConnections = new Map();
 const callingConnections = new Map();
 const groupConnections = new Map();
+
+// Initialize Supabase
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_KEY;
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Handle WebSocket upgrade requests
 server.on('upgrade', (request, socket, head) => {
@@ -134,25 +140,86 @@ function handleGroupMessagingWebSocket(ws) {
                 // Send decrypted message to all group members
                 const { data: groupData, error: groupError } = await supabase
                     .from('Group_Table')
-                    .select('members')
-                    .eq('group_id', grp_id)
+                    .select('members, group_name')
+                    .eq('grp_id', grp_id)
                     .single();
 
                 if (groupError) throw groupError;
 
+                // const members = groupData.members;
+                // members.forEach(member => {
+                //     const memberSocket = groupConnections.get(member.user_id);
+                //     if (memberSocket) {
+                //         memberSocket.send(
+                //             JSON.stringify({
+                //                 type: 'receiveGroupMessage',
+                //                 groupName: parsedData.groupName,
+                //                 senderId,
+                //                 message: decryptedMessage,
+                //                 time_of_msg,
+                //             })
+                //         );
+                //     }
+                // });
+
                 const members = groupData.members;
-                members.forEach(member => {
-                    const memberSocket = groupConnections.get(member.user_id);
+                const groupName = groupData.group_name;
+                console.log(`Sending message to group: ${groupName}, members: ${JSON.stringify(members)}`);
+                // members.forEach(member => {
+                //     const memberSocket = groupConnections.get(member.user_id);
+                //     if (memberSocket) {
+                //         console.log(`Sending message to member: ${member.user_id}`);
+                //         memberSocket.send(
+                //             JSON.stringify({
+                //                 type: 'receiveGroupMessage',
+                //                 groupName: groupName,
+                //                 senderId,
+                //                 message: decryptedMessage,
+                //                 time_of_msg,
+                //             })
+                //         );
+                //     }
+                // });
+                //heeeeee
+                // console.log("Members array:", members);
+                // members.forEach(member => {
+                //     console.log("Member object:", member);
+                //     const memberSocket = groupConnections.get(member.user_id);
+                //     console.log(`Checking socket for user ${member.user_id}:`, memberSocket);
+                
+                //     if (memberSocket) {
+                //         console.log(`Sending message to member: ${member.user_id}`);
+                //         memberSocket.send(
+                //             JSON.stringify({
+                //                 type: 'receiveGroupMessage',
+                //                 groupName: groupName,
+                //                 senderId,
+                //                 message: decryptedMessage,
+                //                 time_of_msg,
+                //             })
+                //         );
+                //     } else {
+                //         console.log(`No active socket connection for user: ${member.user_id}`);
+                //     }
+                // });
+
+                members.forEach(userId => {
+                    console.log(`Checking socket for user ${userId}`);
+                    const memberSocket = groupConnections.get(userId);
+                
                     if (memberSocket) {
+                        console.log(`Sending message to member: ${userId}`);
                         memberSocket.send(
                             JSON.stringify({
                                 type: 'receiveGroupMessage',
-                                groupName: parsedData.groupName,
+                                groupName,
                                 senderId,
                                 message: decryptedMessage,
                                 time_of_msg,
                             })
                         );
+                    } else {
+                        console.log(`No active socket connection for user: ${userId}`);
                     }
                 });
 
@@ -183,7 +250,6 @@ const userConnections = new Map(); // Map to store WebSocket connections by user
 
 function handleCallingWebSocket(ws) {
     let userId; // To track the userId associated with this WebSocket
-
     ws.on('message', async (data) => {
         try {
             const parsedData = JSON.parse(data);
@@ -236,6 +302,7 @@ function handleCallingWebSocket(ws) {
             }
 
             // Answer Call
+            //web rtc
             if (parsedData.type === 'answer') {
                 const { answer } = parsedData;
 
@@ -256,8 +323,9 @@ function handleCallingWebSocket(ws) {
                 }
                 return;
             }
-
+//
             //Exchange ICE Candidates
+            //web rtc
             if (parsedData.type === 'iceCandidate') {
                 const { candidate } = parsedData;
 
