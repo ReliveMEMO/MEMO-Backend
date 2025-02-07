@@ -75,4 +75,44 @@ async function sendPushNotification(receiverId, senderId, messageBody,fullName) 
     }
 }
 
-module.exports = { handlePushNotification };
+/**
+ * Alternative method to send push notifications
+ * This function fetches the FCM token and sends the notification internally
+ */
+async function notifyUser(senderId, receiverId, message) {
+    try {
+        // 1. Fetch receiver's FCM token from Supabase
+        const { data: user, error } = await supabase
+            .from("User_Info")
+            .select("fcm_token")
+            .eq("id", receiverId)
+            .single();
+
+        if (error || !user?.fcm_token) {
+            console.error("FCM token not found for receiver:", error);
+            return { success: false, error: "FCM token not found" };
+        }
+
+        // 2. Prepare the push notification payload
+        const payload = {
+            token: user.fcm_token,
+            notification: {
+                title: `New Message from User ${senderId}`,
+                body: message,
+            },
+        };
+
+        // 3. Send push notification using Firebase
+        await admin.messaging().send(payload);
+
+        console.log(`Notification sent to User ${receiverId}`);
+        return { success: true };
+        
+    } catch (err) {
+        console.error("Error sending push notification:", err);
+        return { success: false, error: "Internal server error" };
+    }
+}
+
+
+module.exports = { handlePushNotification ,notifyUser};
