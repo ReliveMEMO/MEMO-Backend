@@ -6,14 +6,22 @@ const { findOrCreateChat, insertMessage } = require('./models/messageModel');
 const { logCall, updateCallStatus, getCallStatus } = require('./models/callModel');
 const { handlePushNotification } = require('./middleware/pushNotificationService');
 require('dotenv').config();
+const cors = require('cors');
 
+// Initialize Express and HTTP server
 const app = express();
 const server = http.createServer(app);
 
+// Middleware
+app.use(cors());
 app.use(express.json());
+
+// Routes
 app.use('/api/messages', require('./routes/messageRoutes'));
 app.use('/api', require('./controllers/fcmController'));
+app.use("/api", require("./routes/fcmRoutes")); // New push notification route
 
+// WebSocket server
 const wss = new WebSocket.Server({ noServer: true });
 
 const messagingConnections = new Map();
@@ -279,6 +287,7 @@ server.listen(process.env.PORT, () => {
     console.log(`Server running on port ${process.env.PORT}`);
     console.log(`Messaging WebSocket endpoint: ws://localhost:${process.env.PORT}/messaging`);
     console.log(`Calling WebSocket endpoint: ws://localhost:${process.env.PORT}/calling`);
+    console.log(`API Endpoint: http://localhost:${process.env.PORT}/api/send-notification`);
 });
 
 

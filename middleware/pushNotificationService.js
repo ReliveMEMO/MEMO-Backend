@@ -97,7 +97,7 @@ async function notifyUser(senderId, receiverId, message) {
         const payload = {
             token: user.fcm_token,
             notification: {
-                title: `New Message from User ${senderId}`,
+                title: `New Notification`,
                 body: message,
             },
         };
