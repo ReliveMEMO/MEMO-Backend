@@ -79,7 +79,7 @@ async function sendPushNotification(receiverId, senderId, messageBody,fullName) 
  * Alternative method to send push notifications
  * This function fetches the FCM token and sends the notification internally
  */
-async function notifyUser(senderId, receiverId, message) {
+async function notifyUser(senderId, receiverId, notificationType ,message) {
     try {
         // 1. Fetch receiver's FCM token from Supabase
         const { data: user, error } = await supabase
@@ -97,7 +97,7 @@ async function notifyUser(senderId, receiverId, message) {
         const payload = {
             token: user.fcm_token,
             notification: {
-                title: `New Notification`,
+                title: `${notificationType}`,
                 body: message,
             },
         };
