@@ -3,7 +3,7 @@ const { notifyUser } = require("../middleware/pushNotificationService");
 
 const router = express.Router();
 
-router.post("/send-notification", async (req, res) => {
+router.post("/send-com-notification", async (req, res) => {
     const { sender_id, receiver_id, notification_type ,message } = req.body;
 
     if (!sender_id || !receiver_id || !notification_type || !message) {

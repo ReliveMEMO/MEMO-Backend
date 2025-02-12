@@ -287,7 +287,7 @@ server.listen(process.env.PORT, () => {
     console.log(`Server running on port ${process.env.PORT}`);
     console.log(`Messaging WebSocket endpoint: ws://localhost:${process.env.PORT}/messaging`);
     console.log(`Calling WebSocket endpoint: ws://localhost:${process.env.PORT}/calling`);
-    console.log(`API Endpoint: http://localhost:${process.env.PORT}/api/send-notification`);
+    console.log(`API Endpoint: http://localhost:${process.env.PORT}/api/send-com-notification`);
 });
 
 
