@@ -47,6 +47,9 @@ router.post("/tag-users", async (req, res) => {
     }
 });
 
+
+
+// New POST method for sending notifications to all followed users
 router.post("/send-notification-to-followed", async (req, res) => {
     const { sender_id, notification_type, message } = req.body;
 
