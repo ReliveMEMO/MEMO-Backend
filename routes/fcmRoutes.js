@@ -47,5 +47,20 @@ router.post("/tag-users", async (req, res) => {
     }
 });
 
+router.post("/send-notification-to-followed", async (req, res) => {
+    const { sender_id, notification_type, message } = req.body;
+
+    if (!sender_id || !notification_type || !message) {
+        return res.status(400).json({ error: "sender_id, notification_type, and message are required" });
+    }
+
+    const result = await notifyFollowedUsers(sender_id, notification_type, message);
+
+    if (result.success) {
+        return res.status(200).json({ success: "Push notifications sent to followed users" });
+    } else {
+        return res.status(500).json({ error: result.error });
+    }
+});
 
 module.exports = router;
