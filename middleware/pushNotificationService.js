@@ -115,4 +115,52 @@ async function notifyUser(senderId, receiverId, notificationType ,message) {
 }
 
 
-module.exports = { handlePushNotification ,notifyUser};
+/**
+ * Fetch all followed users of a given sender_id
+ */
+async function getFollowedUsers(senderId) {
+    try {
+        const { data, error } = await supabase
+            .from("user_following")
+            .select("followed_id")
+            .eq("follower_id", senderId);
+
+        if (error) {
+            console.error("Error fetching followed users:", error);
+            return [];
+        }
+
+        return data.map((user) => user.followed_id);
+    } catch (err) {
+        console.error("Unexpected error fetching followed users:", err);
+        return [];
+    }
+}
+
+/**
+ * Notify all followed users of a sender
+ */
+async function notifyFollowedUsers(senderId, notificationType, message) {
+    try {
+        const followedUserIds = await getFollowedUsers(senderId);
+
+        if (followedUserIds.length === 0) {
+            console.log("No followed users found for sender:", senderId);
+            return { success: false, error: "No followed users found" };
+        }
+
+        for (const followedId of followedUserIds) {
+            await notifyUser(senderId, followedId, notificationType, message);
+        }
+
+        return { success: true };
+    } catch (err) {
+        console.error("Error notifying followed users:", err);
+        return { success: false, error: "Internal server error" };
+    }
+}
+
+
+
+
+module.exports = { handlePushNotification ,notifyUser, notifyFollowedUsers };

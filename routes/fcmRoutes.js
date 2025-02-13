@@ -1,5 +1,6 @@
 const express = require("express");
-const { notifyUser } = require("../middleware/pushNotificationService");
+const { notifyUser, notifyFollowedUsers } = require("../middleware/pushNotificationService");
+
 
 const router = express.Router();
 
