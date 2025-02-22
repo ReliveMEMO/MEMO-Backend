@@ -7,14 +7,22 @@ const { findOrCreateChat, insertMessage, appendGroupMessage} = require('./models
 const { logCall, updateCallStatus, getCallStatus } = require('./models/callModel');
 const { handlePushNotification } = require('./middleware/pushNotificationService');
 require('dotenv').config();
+const cors = require('cors');
 
+// Initialize Express and HTTP server
 const app = express();
 const server = http.createServer(app);
 
+// Middleware
+app.use(cors());
 app.use(express.json());
+
+// Routes
 app.use('/api/messages', require('./routes/messageRoutes'));
 app.use('/api', require('./controllers/fcmController'));
+app.use("/api", require("./routes/fcmRoutes")); // New push notification route
 
+// WebSocket server
 const wss = new WebSocket.Server({ noServer: true });
 const groupWss = new WebSocket.Server({ noServer: true });
 
@@ -425,12 +433,15 @@ function handleCallingWebSocket(ws) {
 
 
 
-
 // Start the server
 server.listen(process.env.PORT, () => {
     console.log(`Server running on port ${process.env.PORT}`);
     console.log(`Messaging WebSocket endpoint: ws://localhost:${process.env.PORT}/messaging`);
     console.log(`Calling WebSocket endpoint: ws://localhost:${process.env.PORT}/calling`);
-    console.log(`Group Messaging WebSocket endpoint: ws://localhost:${process.env.PORT}/group-messages`);
+    console.log(`API Endpoint for common push notifications: http://localhost:${process.env.PORT}/api/send-com-notification`);
+    console.log(`API Endpoint for tag users notifications: http://localhost:${process.env.PORT}/api/tag-users`);
+    console.log(`API Endpoint for event participation notifications: http://localhost:${process.env.PORT}/api/send-notification-to-followed`);
+    
+
 });
 
