@@ -75,4 +75,92 @@ async function sendPushNotification(receiverId, senderId, messageBody,fullName) 
     }
 }
 
-module.exports = { handlePushNotification };
+/**
+ * Alternative method to send push notifications
+ * This function fetches the FCM token and sends the notification internally
+ */
+async function notifyUser(senderId, receiverId, notificationType ,message) {
+    try {
+        // 1. Fetch receiver's FCM token from Supabase
+        const { data: user, error } = await supabase
+            .from("User_Info")
+            .select("fcm_token")
+            .eq("id", receiverId)
+            .single();
+
+        if (error || !user?.fcm_token) {
+            console.error("FCM token not found for receiver:", error);
+            return { success: false, error: "FCM token not found" };
+        }
+
+        // 2. Prepare the push notification payload
+        const payload = {
+            token: user.fcm_token,
+            notification: {
+                title: `${notificationType}`,
+                body: message,
+            },
+        };
+
+        // 3. Send push notification using Firebase
+        await admin.messaging().send(payload);
+
+        console.log(`Notification sent to User ${receiverId}`);
+        return { success: true };
+        
+    } catch (err) {
+        console.error("Error sending push notification:", err);
+        return { success: false, error: "Internal server error" };
+    }
+}
+
+
+/**
+ * Fetch all followed users of a given sender_id
+ */
+async function getFollowedUsers(senderId) {
+    try {
+        const { data, error } = await supabase
+            .from("user_following")
+            .select("followed_id")
+            .eq("follower_id", senderId);
+
+        if (error) {
+            console.error("Error fetching followed users:", error);
+            return [];
+        }
+
+        return data.map((user) => user.followed_id);
+    } catch (err) {
+        console.error("Unexpected error fetching followed users:", err);
+        return [];
+    }
+}
+
+/**
+ * Notify all followed users of a sender
+ */
+async function notifyFollowedUsers(senderId, notificationType, message) {
+    try {
+        const followedUserIds = await getFollowedUsers(senderId);
+
+        if (followedUserIds.length === 0) {
+            console.log("No followed users found for sender:", senderId);
+            return { success: false, error: "No followed users found" };
+        }
+
+        for (const followedId of followedUserIds) {
+            await notifyUser(senderId, followedId, notificationType, message);
+        }
+
+        return { success: true };
+    } catch (err) {
+        console.error("Error notifying followed users:", err);
+        return { success: false, error: "Internal server error" };
+    }
+}
+
+
+
+
+module.exports = { handlePushNotification ,notifyUser, notifyFollowedUsers };
