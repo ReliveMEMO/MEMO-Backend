@@ -24,6 +24,7 @@ async function increaseLike(postId) {
 async function decreaseLike(postId) {
 
     try {
+        // Call the decrement_like stored procedure(decrement_like.sql) with the post_id parameter
         const { error } = await supabase.rpc('decrement_like', { p_post_id: postId });
 
         if (error) {
