@@ -21,7 +21,7 @@ app.use(express.json());
 app.use('/api/messages', require('./routes/messageRoutes'));
 app.use('/api', require('./controllers/fcmController'));
 app.use('/api', require('./routes/fcmRoutes')); // New push notification route
-app.use('/api', require('./routes/likeRoutes')); // New like route
+app.use('/api', require('./routes/likeRoutes')); // post like count increase and decrease route
 
 // WebSocket server
 const wss = new WebSocket.Server({ noServer: true });
