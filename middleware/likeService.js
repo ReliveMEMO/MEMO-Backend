@@ -17,7 +17,6 @@ async function increaseLike(postId) {
     }
 
 
-
 }
 
 async function decreaseLike(postId) {
