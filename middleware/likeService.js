@@ -1,8 +1,9 @@
 const supabase = require('../config/supabase');
-
+//post like increase when user like the post
 async function increaseLike(postId) {
 
     try {
+        // Call the increment_like stored procedure(increament_like.sql) with the post_id parameter
         const { error } = await supabase.rpc('increment_like', { p_post_id: postId });
 
         if (error) {
@@ -19,6 +20,7 @@ async function increaseLike(postId) {
 
 }
 
+//post like decrease when user unlike the post
 async function decreaseLike(postId) {
 
     try {
