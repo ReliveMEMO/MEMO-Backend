@@ -20,7 +20,8 @@ app.use(express.json());
 // Routes
 app.use('/api/messages', require('./routes/messageRoutes'));
 app.use('/api', require('./controllers/fcmController'));
-app.use("/api", require("./routes/fcmRoutes")); // New push notification route
+app.use('/api', require('./routes/fcmRoutes')); // New push notification route
+app.use('/api', require('./routes/likeRoutes')); // New like route
 
 // WebSocket server
 const wss = new WebSocket.Server({ noServer: true });
