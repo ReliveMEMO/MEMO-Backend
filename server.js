@@ -139,21 +139,13 @@ function handleGroupMessagingWebSocket(ws) {
                 const time_of_msg = new Date().toISOString();
                 const encryptedMessage = encrypt(message);
 
-// Group chat
-// groupWss.on('connection', (ws, req) => {
-//     let userId;
+                if (!grp_id) throw new Error("Group ID is required.");
 
-//     ws.on('message', async (data) => {
-//         try {
-//             const parsedData = JSON.parse(data);
+                const messageObject = { senderId, content: { [time_of_msg]: encryptedMessage }, time_of_msg };
+                const { data: dbData, error: dbError } = await appendGroupMessage(grp_id, messageObject);
+                if (dbError) throw dbError;
 
-//             if (parsedData.type === 'register') {
-//                 userId = parsedData.userId;
-//                 groupConnections.set(userId, ws);
-//                 console.log(`User registered for group messages with ID: ${userId}`);
-//                 return;
-//             }
-
+                const decryptedMessage = decrypt(encryptedMessage);
 
                 // Send decrypted message to all group members
                 const { data: groupData, error: groupError } = await supabase
