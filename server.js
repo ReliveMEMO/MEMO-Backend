@@ -140,7 +140,7 @@ function handleGroupMessagingWebSocket(ws) {
 
                 if (!grp_id) throw new Error("Group ID is required.");
 
-                const messageObject = { senderId, content: { [time_of_msg]: encryptedMessage }, time_of_msg };
+                const messageObject = { senderId, content: {encryptedMessage}, time_of_msg };
                 const { data: dbData, error: dbError } = await appendGroupMessage(grp_id, messageObject);
                 if (dbError) throw dbError;
 
