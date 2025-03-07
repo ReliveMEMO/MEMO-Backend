@@ -147,7 +147,7 @@ async function appendGroupMessage(groupId, messageObject) {
         .insert({
             grp_id: groupId,
             sender_id: messageObject.senderId,
-            content: messageObject.content,
+            content: messageObject.content.encryptedMessage,
             time_of_msg: messageObject.time_of_msg
         })
         .select('*');
