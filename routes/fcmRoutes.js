@@ -24,9 +24,9 @@ router.post("/send-com-notification", async (req, res) => {
 
 // New POST method for sending notifications to a list of users
 router.post("/tag-users", async (req, res) => {
-    const { user_ids, notification_type, message } = req.body;
+    const { sender_id, user_ids, notification_type, message } = req.body;
 
-    if (!user_ids || !Array.isArray(user_ids) || user_ids.length === 0 || !notification_type || !message) {
+    if (!sender_id || !user_ids || !Array.isArray(user_ids) || user_ids.length === 0 || !notification_type || !message) {
         return res.status(400).json({ error: "user_ids, notification_type, and message are required" });
     }
 
@@ -35,8 +35,9 @@ router.post("/tag-users", async (req, res) => {
         for (let i = 0; i < user_ids.length; i++) {
             const receiverId = user_ids[i];
             const result = await notifyUser(null, receiverId, notification_type, message);
+            const saveResult = await saveNotificationConditions(sender_id, receiverId, notification_type, message);
 
-            if (!result.success) {
+            if (!result.success && !saveResult.success) {
                 console.error(`Failed to send notification to user ${receiverId}:`, result.error);
             }
         }

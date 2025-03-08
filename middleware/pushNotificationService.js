@@ -202,6 +202,11 @@ async function saveNotificationConditions(senderId, receiverId, notificationType
         return { success: true };
     }
 
+    if (notificationType === "Tag"){
+        await saveNotification(senderId, receiverId, notificationType, message);
+        return { success: true };
+    }
+
 
     
     
