@@ -1,5 +1,5 @@
 const express = require("express");
-const { notifyUser, notifyFollowedUsers, saveNotification} = require("../middleware/pushNotificationService");
+const { notifyUser, notifyFollowedUsers, saveNotificationConditions} = require("../middleware/pushNotificationService");
 
 
 const router = express.Router();
@@ -12,7 +12,7 @@ router.post("/send-com-notification", async (req, res) => {
     }
 
     const result = await notifyUser(sender_id, receiver_id, notification_type, message);
-    const saveResult = await saveNotification(sender_id, receiver_id, notification_type, message);
+    const saveResult = await saveNotificationConditions(sender_id, receiver_id, notification_type, message);
 
     if (result.success && saveResult.success) {
         return res.status(200).json({ success: "Push notification sent successfully" });

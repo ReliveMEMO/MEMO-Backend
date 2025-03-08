@@ -163,28 +163,49 @@ async function notifyFollowedUsers(senderId, notificationType, message) {
 
 
 async function saveNotification(senderId, receiverId, notificationType, message) {
+    try {
+        // Save the notification to the database
+            const { data, error } = await supabase
+                .from("notification_table")
+                .insert([
+                    {
+                        sender_id: senderId,
+                        receiver_id: receiverId,
+                        notification_type: notificationType,
+                        message: message,
+                    },
+                ]);
 
-    if (notificationType === "Like") {
-        const { data, error } = await supabase
-            .from("notification_table")
-            .insert([
-                {
-                    sender_id: senderId,
-                    receiver_id: receiverId,
-                    notification_type: notificationType,
-                    message: message,
-                },
-            ]);
+            if (error) {
+                console.error("Error saving notification:", error);
+                return { success: false, error: "Failed to save notification" };
+            }
 
-        if (error) {
-            console.error("Error saving notification:", error);
-            return { success: false, error: "Failed to save notification" };
-        }
+            return { success: true };
+        
+    } catch (err) {
+        console.error("Unexpected error saving notification:", err);
+        return { success: false, error: "Internal server error" };
+    }
+}
 
+
+async function saveNotificationConditions(senderId, receiverId, notificationType, message) {
+
+    if(notificationType === "Like"){
+        await saveNotification(senderId, receiverId, notificationType, message);
         return { success: true };
     }
+
+    if (notificationType === "Comment"){
+        await saveNotification(senderId, receiverId, notificationType, message);
+        return { success: true };
+    }
+
+
+    
     
 }
 
 
-module.exports = { handlePushNotification ,notifyUser, notifyFollowedUsers, saveNotification };
+module.exports = { handlePushNotification ,notifyUser, notifyFollowedUsers, saveNotificationConditions };
