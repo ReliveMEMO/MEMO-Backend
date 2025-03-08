@@ -182,7 +182,7 @@ async function saveNotification(senderId, receiverId, notificationType, message)
                 return { success: false, error: "Failed to save notification" };
             }
 
-            //return { success: true };
+            return { success: true };
         
     } catch (err) {
         console.error("Unexpected error saving notification:", err);
@@ -193,24 +193,38 @@ async function saveNotification(senderId, receiverId, notificationType, message)
 
 async function saveNotificationConditions(senderId, receiverId, notificationType, message) {
 
-    if(notificationType === "Like"){
-        await saveNotification(senderId, receiverId, notificationType, message);
-        return { success: true };
-    }
+    // if(notificationType === "Like"){
+    //     await saveNotification(senderId, receiverId, notificationType, message);
+    //     return { success: true };
+    // }
 
-    if (notificationType === "Comment"){
-        await saveNotification(senderId, receiverId, notificationType, message);
-        return { success: true };
-    }
+    // if (notificationType === "Comment"){
+    //     await saveNotification(senderId, receiverId, notificationType, message);
+    //     return { success: true };
+    // }
 
-    if (notificationType === "Tag"){
-        await saveNotification(senderId, receiverId, notificationType, message);
-        return { success: true };
-    }
+    // if (notificationType === "Tag"){
+    //     await saveNotification(senderId, receiverId, notificationType, message);
+    //     return { success: true };
+    // }
 
-    if (notificationType === "Event Participation"){
-        await saveNotification(senderId, receiverId, notificationType, message);
-        return { success: true };
+    // if (notificationType === "Event Participation"){
+    //     await saveNotification(senderId, receiverId, notificationType, message);
+    //     return { success: true };
+    // }
+
+    try {
+        const validNotificationTypes = ["Like", "Comment", "Tag", "Event Participation"];
+        if (validNotificationTypes.includes(notificationType)) {
+            await saveNotification(senderId, receiverId, notificationType, message);
+            return { success: true };
+        } else {
+            console.error("Invalid notification type:", notificationType);
+            return { success: false, error: "Invalid notification type" };
+        }
+    } catch (err) {
+        console.error("Error saving notification condition:", err);
+        return { success: false, error: "Internal server error" };
     }
 
 
