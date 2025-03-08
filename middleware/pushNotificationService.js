@@ -151,6 +151,7 @@ async function notifyFollowedUsers(senderId, notificationType, message) {
 
         for (const followedId of followedUserIds) {
             await notifyUser(senderId, followedId, notificationType, message);
+            await saveNotificationConditions(senderId, followedId, notificationType, message);
         }
 
         return { success: true };
@@ -181,7 +182,7 @@ async function saveNotification(senderId, receiverId, notificationType, message)
                 return { success: false, error: "Failed to save notification" };
             }
 
-            return { success: true };
+            //return { success: true };
         
     } catch (err) {
         console.error("Unexpected error saving notification:", err);
@@ -203,6 +204,11 @@ async function saveNotificationConditions(senderId, receiverId, notificationType
     }
 
     if (notificationType === "Tag"){
+        await saveNotification(senderId, receiverId, notificationType, message);
+        return { success: true };
+    }
+
+    if (notificationType === "Event Participation"){
         await saveNotification(senderId, receiverId, notificationType, message);
         return { success: true };
     }
