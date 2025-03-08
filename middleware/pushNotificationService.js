@@ -162,5 +162,29 @@ async function notifyFollowedUsers(senderId, notificationType, message) {
 
 
 
+async function saveNotification(senderId, receiverId, notificationType, message) {
 
-module.exports = { handlePushNotification ,notifyUser, notifyFollowedUsers };
+    if (notificationType === "Like") {
+        const { data, error } = await supabase
+            .from("notification_table")
+            .insert([
+                {
+                    sender_id: senderId,
+                    receiver_id: receiverId,
+                    notification_type: notificationType,
+                    message: message,
+                },
+            ]);
+
+        if (error) {
+            console.error("Error saving notification:", error);
+            return { success: false, error: "Failed to save notification" };
+        }
+
+        return { success: true };
+    }
+    
+}
+
+
+module.exports = { handlePushNotification ,notifyUser, notifyFollowedUsers, saveNotification };
