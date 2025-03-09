@@ -163,17 +163,18 @@ async function notifyFollowedUsers(senderId, notificationType, message) {
 
 
 
-async function saveNotification(senderId, receiverId, notificationType, message) {
+async function saveNotification(senderId, receiverId, notificationType, message,notificationTitle) {
     try {
         // Save the notification to the database
             const { data, error } = await supabase
                 .from("notification_table")
                 .insert([
                     {
-                        sender_id: senderId,
-                        receiver_id: receiverId,
-                        notification_type: notificationType,
-                        message: message,
+                        sender_id: senderId, // User ID of the sender
+                        receiver_id: receiverId, // User ID of the receiver
+                        notification_type: notificationType, // Friends, Notification
+                        message: message, // Notification message
+                        notification_title: notificationTitle, // Like, Comment, Tag, Event Participation
                     },
                 ]);
 
@@ -214,11 +215,24 @@ async function saveNotificationConditions(senderId, receiverId, notificationType
     // }
 
     try {
-        const validNotificationTypes = ["Like", "Comment", "Tag", "Event Participation"];
-        if (validNotificationTypes.includes(notificationType)) {
-            await saveNotification(senderId, receiverId, notificationType, message);
+
+        const friendSection = "Friends Activity";
+        const notificationSection = "Notifications";
+
+        const friendSectionTypes = ["Tag", "Event Participation"];
+        const notificationSectionTypes = ["Like", "Comment"];
+        
+        if (friendSectionTypes.includes(notificationType)) {
+            await saveNotification(senderId, receiverId, friendSection, message, notificationType);
             return { success: true };
-        } else {
+        } 
+        
+        else if (notificationSectionTypes.includes(notificationType)) {
+            await saveNotification(senderId, receiverId, notificationSection, message, notificationType);
+            return { success: true };
+        }    
+        
+        else {
             console.error("Invalid notification type:", notificationType);
             return { success: false, error: "Invalid notification type" };
         }
