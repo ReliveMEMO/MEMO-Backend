@@ -177,6 +177,7 @@ async function saveNotification(senderId, receiverId, notificationType, message,
                         notification_title: notificationTitle, // Like, Comment, Tag, Event Participation
                     },
                 ]);
+            console.log("Notification saved:", data);
 
             if (error) {
                 console.error("Error saving notification:", error);
@@ -215,12 +216,12 @@ async function saveNotificationConditions(senderId, receiverId, notificationType
     // }
 
     try {
-
+        console.log("Saving notification process");
         const friendSection = "activity";
         const notificationSection = "notification";
 
         const friendSectionTypes = ["Tag", "Event Participation"];
-        const notificationSectionTypes = ["Like", "Comment", "Follow", "Follow Request"];
+        const notificationSectionTypes = ["Like", "Comment", "Follow", "Follow-Request"];
         
         if (friendSectionTypes.includes(notificationType)) {
             await saveNotification(senderId, receiverId, friendSection, message, notificationType);
@@ -228,6 +229,7 @@ async function saveNotificationConditions(senderId, receiverId, notificationType
         } 
         
         else if (notificationSectionTypes.includes(notificationType)) {
+            console.log("Saving notification:", notificationType);
             await saveNotification(senderId, receiverId, notificationSection, message, notificationType);
             return { success: true };
         }    
