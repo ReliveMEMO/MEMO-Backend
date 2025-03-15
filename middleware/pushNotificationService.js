@@ -222,6 +222,23 @@ async function saveNotificationConditions(senderId, receiverId, notificationType
 
         const friendSectionTypes = ["Tag", "Event Participation"];
         const notificationSectionTypes = ["Like", "Comment", "Follow", "Follow-Request"];
+
+        switch (notificationType) {
+            case "Like":
+                message = "Liked your post";
+                break;
+            case "Comment":
+                message = "Commented on your post";
+                break;
+            case "Tag":
+                message = "Tagged you in a post";
+                break;
+            case "Follow":
+                message = "Started following you";
+                break;
+            case "Follow-Request":
+                message = "Sent you a follow request";
+        }
         
         if (friendSectionTypes.includes(notificationType)) {
             await saveNotification(senderId, receiverId, friendSection, message, notificationType);
