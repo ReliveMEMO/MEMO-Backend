@@ -216,11 +216,11 @@ async function saveNotificationConditions(senderId, receiverId, notificationType
 
     try {
 
-        const friendSection = "Friends Activity";
-        const notificationSection = "Notifications";
+        const friendSection = "activity";
+        const notificationSection = "notification";
 
         const friendSectionTypes = ["Tag", "Event Participation"];
-        const notificationSectionTypes = ["Like", "Comment"];
+        const notificationSectionTypes = ["Like", "Comment", "Follow", "Follow Request"];
         
         if (friendSectionTypes.includes(notificationType)) {
             await saveNotification(senderId, receiverId, friendSection, message, notificationType);
