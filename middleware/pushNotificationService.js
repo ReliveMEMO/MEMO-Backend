@@ -238,6 +238,7 @@ async function saveNotificationConditions(senderId, receiverId, notificationType
                 break;
             case "Follow-Request":
                 message = "Sent you a follow request";
+                break;
         }
         
         if (friendSectionTypes.includes(notificationType)) {
