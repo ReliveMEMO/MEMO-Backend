@@ -70,10 +70,10 @@ async function updateUserChats(userId, chatId) {
         }
 }
 
-async function insertMessage(chatId, senderId, content) {
+async function insertMessage(chatId, senderId, content, seen) {
     const { data, error } = await supabase
         .from('ind_message_table')
-        .insert({ chat_id: chatId, sender_id: senderId, message: content })
+        .insert({ chat_id: chatId, sender_id: senderId, message: content, is_seen: seen })
         .select('*')
         .single();
 

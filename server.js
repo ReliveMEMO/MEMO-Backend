@@ -81,9 +81,6 @@ function handleMessagingWebSocket(ws) {
                 const { chatId, error: chatError } = await findOrCreateChat(senderId, receiverId);
                 if (chatError) throw chatError;
 
-                const { error: dbError } = await insertMessage(chatId, senderId, encryptedMessage);
-                if (dbError) throw dbError;
-
                 const receiverSocket = messagingConnections.get(receiverId);
                 if (receiverSocket) {
                     receiverSocket.send(
@@ -94,8 +91,12 @@ function handleMessagingWebSocket(ws) {
                             timestamp,
                         })
                     );
+                    const { error: dbError } = await insertMessage(chatId, senderId, encryptedMessage, true);
+                    if (dbError) throw dbError;
                 } else {
                     await handlePushNotification(chatId, senderId, receiverId, message);
+                    const { error: dbError } = await insertMessage(chatId, senderId, encryptedMessage, false);
+                    if (dbError) throw dbError;
                 }
 
                 ws.send(
