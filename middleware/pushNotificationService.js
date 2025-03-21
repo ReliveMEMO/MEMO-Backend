@@ -1,6 +1,13 @@
 const supabase = require('../config/supabase');
 const admin = require('../config/firebase-service-account');
 
+
+
+/**
+ * Handle push notifications for a chat message
+ * This function fetches the recent messages for a chat and sender, and sends a push notification to the receiver
+ * It sends a summarized notification if there are multiple unseen messages
+*/
 async function handlePushNotification(chatId, senderId, receiverId, currentMessage) {
     try {
         // Fetch recent 20 messages for the chat and sender
@@ -43,6 +50,12 @@ async function handlePushNotification(chatId, senderId, receiverId, currentMessa
     }
 }
 
+
+
+/**
+ * Send a push notification to a user using their FCM token
+ * This function sends a notification to the user using their FCM token
+ */
 async function sendPushNotification(receiverId, senderId, messageBody,fullName) {
     const { data: user, error } = await supabase
         .from('User_Info')
@@ -170,6 +183,9 @@ async function notifyFollowedUsers(senderId, notificationType, message) {
 }
 
 
+/**
+ * Save the notification to the database
+ */
 
 async function saveNotification(senderId, receiverId, notificationType, message,notificationTitle) {
     try {
@@ -199,6 +215,10 @@ async function saveNotification(senderId, receiverId, notificationType, message,
     }
 }
 
+
+/**
+ * Save the notification conditions to the database
+ */
 
 async function saveNotificationConditions(senderId, receiverId, notificationType, message) {
 
@@ -235,6 +255,9 @@ async function saveNotificationConditions(senderId, receiverId, notificationType
 }
 
 
+/**
+ * Save the FCM token for a user
+ */
 async function checkAndUpdateFCM (userId, fcmToken) {
     try {
         // Update or insert the FCM token for the user
