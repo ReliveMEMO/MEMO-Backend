@@ -124,39 +124,41 @@ async function appendMessage(chatId, messageObject) {
 }
 
 async function findOrCreateGroup(groupName) {
+    // Check if a group with the given name already exists
     let { data, error } = await supabase
         .from('Group_Table')
         .select('*')
         .eq('group_name', groupName)
-        .single();
+        .single(); // Expect a single result
 
     if (error && error.code === 'PGRST116') {
+        // If the group does not exist, create a new group
         ({ data, error } = await supabase.from('Group_Table').insert({
-            group_name: groupName,
-            created_at: new Date().toISOString(),
-            members: []
-        }).select('*').single());
+            group_name: groupName, // Name of the group
+            created_at: new Date().toISOString(), // Timestamp for when the group is created
+            members: [] // Initialize with an empty list of members
+        }).select('*').single()); // Return the newly created group
     }
 
+    // Return the group ID and any error that occurred
     return { groupId: data?.group_id, error };
 }
 
+// Append a new message to a group
 async function appendGroupMessage(groupId, messageObject) {
+    // Insert the new message into the 'grp_msg_table'
     const { data, error } = await supabase
         .from('grp_msg_table')
         .insert({
-            grp_id: groupId,
-            sender_id: messageObject.senderId,
-            content: messageObject.content.encryptedMessage,
-            time_of_msg: messageObject.time_of_msg
+            grp_id: groupId, // ID of the group the message belongs to
+            sender_id: messageObject.senderId, // ID of the user sending the message
+            content: messageObject.content.encryptedMessage, // Encrypted message content
+            time_of_msg: messageObject.time_of_msg // Timestamp of the message
         })
-        .select('*');
+        .select('*'); // Return the inserted message
 
+    // Return the inserted message and any error that occurred
     return { data, error };
 }
-
-
-
-
 
 module.exports = { findOrCreateChat, appendMessage, insertMessage, findOrCreateGroup, appendGroupMessage };

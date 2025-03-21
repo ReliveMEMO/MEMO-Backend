@@ -121,112 +121,69 @@ function handleMessagingWebSocket(ws) {
 
 // Group Messaging WebSocket handler
 function handleGroupMessagingWebSocket(ws) {
-    let userId;
+    let userId; // Variable to store the user ID associated with this WebSocket connection
 
+    // Listen for incoming WebSocket messages
     ws.on('message', async (data) => {
         try {
+            // Parse the incoming message data
             const parsedData = JSON.parse(data);
 
+            // Handle user registration for group messaging
             if (parsedData.type === 'register') {
-                userId = parsedData.userId;
-                groupConnections.set(userId, ws);
+                userId = parsedData.userId; // Extract the user ID from the message
+                groupConnections.set(userId, ws); // Map the user ID to the WebSocket connection
                 console.log(`User registered for group messages with ID: ${userId}`);
-                return;
+                return; // Exit after handling registration
             }
 
+            // Handle sending a group message
             if (parsedData.type === 'sendGroupMessage') {
-                const { grp_id, senderId, message } = parsedData;
+                const { grp_id, senderId, message } = parsedData; // Extract group ID, sender ID, and message
 
-                const time_of_msg = new Date().toISOString();
-                const encryptedMessage = encrypt(message);
+                const time_of_msg = new Date().toISOString(); // Get the current timestamp
+                const encryptedMessage = encrypt(message); // Encrypt the message
 
+                // Ensure the group ID is provided
                 if (!grp_id) throw new Error("Group ID is required.");
 
-                const messageObject = { senderId, content: { [time_of_msg]: encryptedMessage }, time_of_msg };
-                const { data: dbData, error: dbError } = await appendGroupMessage(grp_id, messageObject);
-                if (dbError) throw dbError;
+                // Create a message object to store in the database
+                const messageObject = { senderId, content: { encryptedMessage }, time_of_msg };
 
+                // Append the encrypted message to the database
+                const { data: dbData, error: dbError } = await appendGroupMessage(grp_id, messageObject);
+                if (dbError) throw dbError; // Handle database errors
+
+                // Decrypt the message for sending to group members
                 const decryptedMessage = decrypt(encryptedMessage);
 
-                // Send decrypted message to all group members
+                // Fetch group details (members and group name) from the database
                 const { data: groupData, error: groupError } = await supabase
                     .from('Group_Table')
                     .select('members, group_name')
                     .eq('grp_id', grp_id)
                     .single();
 
-                if (groupError) throw groupError;
+                if (groupError) throw groupError; // Handle errors in fetching group details
 
-                // const members = groupData.members;
-                // members.forEach(member => {
-                //     const memberSocket = groupConnections.get(member.user_id);
-                //     if (memberSocket) {
-                //         memberSocket.send(
-                //             JSON.stringify({
-                //                 type: 'receiveGroupMessage',
-                //                 groupName: parsedData.groupName,
-                //                 senderId,
-                //                 message: decryptedMessage,
-                //                 time_of_msg,
-                //             })
-                //         );
-                //     }
-                // });
-
-                const members = groupData.members;
-                const groupName = groupData.group_name;
+                const members = groupData.members; // List of group members
+                const groupName = groupData.group_name; // Name of the group
                 console.log(`Sending message to group: ${groupName}, members: ${JSON.stringify(members)}`);
-                // members.forEach(member => {
-                //     const memberSocket = groupConnections.get(member.user_id);
-                //     if (memberSocket) {
-                //         console.log(`Sending message to member: ${member.user_id}`);
-                //         memberSocket.send(
-                //             JSON.stringify({
-                //                 type: 'receiveGroupMessage',
-                //                 groupName: groupName,
-                //                 senderId,
-                //                 message: decryptedMessage,
-                //                 time_of_msg,
-                //             })
-                //         );
-                //     }
-                // });
-                //heeeeee
-                // console.log("Members array:", members);
-                // members.forEach(member => {
-                //     console.log("Member object:", member);
-                //     const memberSocket = groupConnections.get(member.user_id);
-                //     console.log(`Checking socket for user ${member.user_id}:`, memberSocket);
-                
-                //     if (memberSocket) {
-                //         console.log(`Sending message to member: ${member.user_id}`);
-                //         memberSocket.send(
-                //             JSON.stringify({
-                //                 type: 'receiveGroupMessage',
-                //                 groupName: groupName,
-                //                 senderId,
-                //                 message: decryptedMessage,
-                //                 time_of_msg,
-                //             })
-                //         );
-                //     } else {
-                //         console.log(`No active socket connection for user: ${member.user_id}`);
-                //     }
-                // });
 
+                // Iterate through all group members and send the decrypted message
                 members.forEach(userId => {
                     console.log(`Checking socket for user ${userId}`);
-                    const memberSocket = groupConnections.get(userId);
-                
+                    const memberSocket = groupConnections.get(userId); // Get the WebSocket connection for the user
+
                     if (memberSocket) {
                         console.log(`Sending message to member: ${userId}`);
                         memberSocket.send(
                             JSON.stringify({
-                                type: 'receiveGroupMessage',
-                                groupName,
-                                senderId,
-                                message: decryptedMessage,
-                                time_of_msg,
+                                type: 'receiveGroupMessage', // Message type for receiving group messages
+                                groupName, // Name of the group
+                                senderId, // ID of the sender
+                                message: decryptedMessage, // Decrypted message content
+                                time_of_msg, // Timestamp of the message
                             })
                         );
                     } else {
@@ -234,49 +191,60 @@ function handleGroupMessagingWebSocket(ws) {
                     }
                 });
 
-                // Send confirmation back to sender
+                // Send a confirmation back to the sender
                 ws.send(
                     JSON.stringify({
-                        status: 'Message sent',
-                        groupId: grp_id,
-                        time_of_msg,
-                        decryptedMessage,
+                        status: 'Message sent', // Confirmation status
+                        groupId: grp_id, // Group ID
+                        time_of_msg, // Timestamp of the message
+                        decryptedMessage, // Decrypted message content
                     })
                 );
             }
         } catch (err) {
+            // Handle errors during message processing
             console.error('Error processing WebSocket message:', err);
-            ws.send(JSON.stringify({ error: 'Invalid message format' }));
+            ws.send(JSON.stringify({ error: 'Invalid message format' })); // Send error response to the client
         }
     });
 
+    // Handle WebSocket disconnection
     ws.on('close', () => {
         console.log('User disconnected from group messages:', userId);
-        groupConnections.delete(userId);
+        groupConnections.delete(userId); // Remove the user from the active connections map
     });
 }
 
 const callConnections = new Map(); // Map to store WebSocket connections by callId
 const userConnections = new Map(); // Map to store WebSocket connections by userId
 
+// Calling WebSocket handler
 function handleCallingWebSocket(ws) {
-    let userId; // To track the userId associated with this WebSocket
+    let userId; // Variable to track the userId associated with this WebSocket connection
+
+    // Listen for incoming WebSocket messages
     ws.on('message', async (data) => {
         try {
+            // Parse the incoming message data
             const parsedData = JSON.parse(data);
 
+
             // Register User
+
+            // Step 1: Register User
+
             if (parsedData.type === 'register') {
-                userId = parsedData.userId;
+                userId = parsedData.userId; // Extract the userId from the message
                 userConnections.set(userId, ws); // Map the userId to the WebSocket connection
                 console.log(`User registered for calling: ${userId}`);
-                return;
+                return; // Exit after handling registration
             }
 
-            //Initiate Call
+            // Step 2: Initiate Call
             if (parsedData.type === 'call') {
-                const { callerId, calleeId, offer } = parsedData;
+                const { callerId, calleeId, offer } = parsedData; // Extract callerId, calleeId, and offer
 
+                // Ensure both users are registered
                 if (!userConnections.has(callerId) || !userConnections.has(calleeId)) {
                     ws.send(
                         JSON.stringify({
@@ -284,12 +252,13 @@ function handleCallingWebSocket(ws) {
                             message: 'Both users must be registered before initiating a call.',
                         })
                     );
-                    return;
+                    return; // Exit if either user is not registered
                 }
 
-                const calleeSocket = userConnections.get(calleeId); // Find callee's connection
+                const calleeSocket = userConnections.get(calleeId); // Find callee's WebSocket connection
 
                 if (calleeSocket) {
+                    // Send an incoming call notification to the callee
                     calleeSocket.send(
                         JSON.stringify({
                             type: 'incomingCall',
@@ -298,28 +267,28 @@ function handleCallingWebSocket(ws) {
                         })
                     );
 
-                    // Log the call and store the callId
+                    // Log the call in the database and generate a callId
                     const callRecord = await logCall(callerId, calleeId, 'initiated');
                     if (callRecord && callRecord.length > 0) {
-                        const callId = callRecord[0].id; // Generate callId
-                        ws.callId = callId; // Attach callId to the WebSocket
-                        calleeSocket.callId = callId; // Attach callId to callee WebSocket
-                        callConnections.set(callId, [ws, calleeSocket]); // Map callId to both connections
+                        const callId = callRecord[0].id; // Extract the callId
+                        ws.callId = callId; // Attach callId to the caller's WebSocket
+                        calleeSocket.callId = callId; // Attach callId to the callee's WebSocket
+                        callConnections.set(callId, [ws, calleeSocket]); // Map the callId to both WebSocket connections
                     } else {
                         console.error('Failed to log call');
                     }
                 }
-                return;
+                return; // Exit after initiating the call
             }
 
-            // Answer Call
-            //web rtc
+            // Step 3: Answer Call
             if (parsedData.type === 'answer') {
-                const { answer } = parsedData;
+                const { answer } = parsedData; // Extract the answer
 
                 if (ws.callId) {
-                    const [callerSocket] = callConnections.get(ws.callId) || [];
+                    const [callerSocket] = callConnections.get(ws.callId) || []; // Get the caller's WebSocket
                     if (callerSocket) {
+                        // Send the answer to the caller
                         callerSocket.send(
                             JSON.stringify({
                                 type: 'callAnswered',
@@ -327,24 +296,25 @@ function handleCallingWebSocket(ws) {
                             })
                         );
 
+                        // Update the call status in the database
                         await updateCallStatus(ws.callId, 'answered');
                     }
                 } else {
                     console.error('Call ID is undefined for updating status to "answered"');
                 }
-                return;
+                return; // Exit after answering the call
             }
-//
-            //Exchange ICE Candidates
-            //web rtc
+
+            // Step 4: Exchange ICE Candidates (WebRTC)
             if (parsedData.type === 'iceCandidate') {
-                const { candidate } = parsedData;
+                const { candidate } = parsedData; // Extract the ICE candidate
 
                 if (ws.callId) {
-                    const [callerSocket, calleeSocket] = callConnections.get(ws.callId) || [];
-                    const peerSocket = ws === callerSocket ? calleeSocket : callerSocket;
+                    const [callerSocket, calleeSocket] = callConnections.get(ws.callId) || []; // Get both WebSocket connections
+                    const peerSocket = ws === callerSocket ? calleeSocket : callerSocket; // Determine the peer WebSocket
 
                     if (peerSocket) {
+                        // Send the ICE candidate to the peer
                         peerSocket.send(
                             JSON.stringify({
                                 type: 'iceCandidate',
@@ -355,40 +325,43 @@ function handleCallingWebSocket(ws) {
                 } else {
                     console.error('Call ID is undefined for ICE candidate exchange');
                 }
-                return;
+                return; // Exit after exchanging ICE candidates
             }
 
-            // Step 5: Hangup
+            // Step 5: Hangup Call
             if (parsedData.type === 'hangup') {
                 if (ws.callId) {
-                    const [callerSocket, calleeSocket] = callConnections.get(ws.callId) || [];
-                    const peerSocket = ws === callerSocket ? calleeSocket : callerSocket;
+                    const [callerSocket, calleeSocket] = callConnections.get(ws.callId) || []; // Get both WebSocket connections
+                    const peerSocket = ws === callerSocket ? calleeSocket : callerSocket; // Determine the peer WebSocket
 
                     if (peerSocket) {
+                        // Notify the peer about the hangup
                         peerSocket.send(
                             JSON.stringify({
                                 type: 'hangup',
                             })
                         );
 
+                        // Update the call status in the database
                         await updateCallStatus(ws.callId, 'ended');
                         callConnections.delete(ws.callId); // Remove the call from the map
                     }
                 } else {
                     console.error('Call ID is undefined for hangup');
                 }
-                return;
+                return; // Exit after handling hangup
             }
         } catch (err) {
+            // Handle errors during message processing
             console.error('Error in calling WebSocket:', err);
         }
     });
 
-    // Handle Disconnection
+    // Handle WebSocket disconnection
     ws.on('close', () => {
         (async () => {
             console.log(`Calling user disconnected: ${userId}`);
-            callingConnections.delete(userId); // Remove user from active connections
+            callingConnections.delete(userId); // Remove the user from active connections
 
             if (ws.callId) {
                 try {
@@ -396,6 +369,7 @@ function handleCallingWebSocket(ws) {
                     const currentStatus = await getCallStatus(ws.callId);
 
                     if (currentStatus !== 'ended') {
+                        // Update the call status to "disconnected"
                         await updateCallStatus(ws.callId, 'disconnected');
                         console.log(`Call status updated to "disconnected" for user: ${userId}`);
                     } else {
@@ -404,23 +378,22 @@ function handleCallingWebSocket(ws) {
                 } catch (err) {
                     console.error('Error updating call status to "disconnected":', err);
                 }
-                
             }
         })();
     });
-
 
     // Handle WebSocket errors
     ws.on('error', (error) => {
         (async () => {
             console.error(`WebSocket error for user ${userId}:`, error);
-            callingConnections.delete(userId);
+            callingConnections.delete(userId); // Remove the user from active connections
 
             if (ws.callId) {
                 try {
                     const currentStatus = await getCallStatus(ws.callId);
 
                     if (currentStatus !== 'ended') {
+                        // Update the call status to "disconnected"
                         await updateCallStatus(ws.callId, 'disconnected');
                         console.log(`Call status updated to "disconnected" for user: ${userId}`);
                     } else {
@@ -433,8 +406,6 @@ function handleCallingWebSocket(ws) {
         })();
     });
 }
-
-
 
 // Start the server
 server.listen(process.env.PORT, () => {
