@@ -2,37 +2,45 @@ const supabase = require('../config/supabase');
 const admin = require('../config/firebase-service-account');
 
 async function handlePushNotification(chatId, senderId, receiverId, currentMessage) {
-    // Fetch recent 20 messages for the chat and sender
-    const { data: messages, error } = await supabase
-        .from('ind_message_table')
-        .select('*')
-        .eq('chat_id', chatId)
-        .eq('sender_id', senderId)
-        .order('time_stamp', { ascending: false })
-        .limit(20);
+    try {
+        // Fetch recent 20 messages for the chat and sender
+        const { data: messages, error } = await supabase
+            .from('ind_message_table')
+            .select('*')
+            .eq('chat_id', chatId)
+            .eq('sender_id', senderId)
+            .order('time_stamp', { ascending: false })
+            .limit(20);
 
-    if (error) {
-        console.error("Error fetching messages:", error);
-        return;
+        if (error) {
+            console.error("Error fetching messages:", error);
+            return;
+        }
+
+        // Count unseen messages
+        const unseenMessages = messages.filter((msg) => !msg.is_seen);
+        const { data: user, error: userError } = await supabase
+            .from('User_Info')
+            .select('fcm_token,full_name')
+            .eq('id', senderId)
+            .single();
+
+        if (userError) {
+            console.error("Error fetching user info:", userError);
+            return;
+        }
+
+        if (unseenMessages.length === 1) {
+            // Send current message as notification
+            await sendPushNotification(receiverId, senderId, currentMessage, user.full_name);
+        } else if (unseenMessages.length > 1) {
+            // Send summarized notification
+            const notificationBody = `${unseenMessages.length} new messages from ${user.full_name}`;
+            await sendPushNotification(receiverId, senderId, notificationBody, user.full_name);
+        }
+    } catch (err) {
+        console.error("Error handling push notification:", err);
     }
-
-    // Count unseen messages
-    const unseenMessages = messages.filter((msg) => !msg.is_seen);
-    const { data: user, errorX } = await supabase
-    .from('User_Info')
-    .select('fcm_token,full_name')
-    .eq('id', senderId)
-    .single();
-
-
-    if (unseenMessages.length === 1) {
-        // Send current message as notification
-        await sendPushNotification(receiverId, senderId, currentMessage,user.full_name);
-    } else if (unseenMessages.length > 1) {
-        // Send summarized notification
-        const notificationBody = `${unseenMessages.length} new messages from ${user.full_name}`;
-        await sendPushNotification(receiverId, senderId, notificationBody,user.full_name);
-}
 }
 
 async function sendPushNotification(receiverId, senderId, messageBody,fullName) {
@@ -81,7 +89,7 @@ async function sendPushNotification(receiverId, senderId, messageBody,fullName) 
  */
 async function notifyUser(senderId, receiverId, notificationType ,message) {
     try {
-        // 1. Fetch receiver's FCM token from Supabase
+        // Fetch receiver's FCM token from Supabase
         const { data: user, error } = await supabase
             .from("User_Info")
             .select("fcm_token")
@@ -93,7 +101,7 @@ async function notifyUser(senderId, receiverId, notificationType ,message) {
             return { success: false, error: "FCM token not found" };
         }
 
-        // 2. Prepare the push notification payload
+        // Prepare the push notification payload
         const payload = {
             token: user.fcm_token,
             notification: {
@@ -102,7 +110,7 @@ async function notifyUser(senderId, receiverId, notificationType ,message) {
             },
         };
 
-        // 3. Send push notification using Firebase
+        // Send push notification using Firebase
         await admin.messaging().send(payload);
 
         console.log(`Notification sent to User ${receiverId}`);
@@ -193,26 +201,6 @@ async function saveNotification(senderId, receiverId, notificationType, message,
 
 
 async function saveNotificationConditions(senderId, receiverId, notificationType, message) {
-
-    // if(notificationType === "Like"){
-    //     await saveNotification(senderId, receiverId, notificationType, message);
-    //     return { success: true };
-    // }
-
-    // if (notificationType === "Comment"){
-    //     await saveNotification(senderId, receiverId, notificationType, message);
-    //     return { success: true };
-    // }
-
-    // if (notificationType === "Tag"){
-    //     await saveNotification(senderId, receiverId, notificationType, message);
-    //     return { success: true };
-    // }
-
-    // if (notificationType === "Event Participation"){
-    //     await saveNotification(senderId, receiverId, notificationType, message);
-    //     return { success: true };
-    // }
 
     try {
 
