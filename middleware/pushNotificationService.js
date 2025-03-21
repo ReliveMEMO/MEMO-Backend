@@ -151,6 +151,7 @@ async function notifyFollowedUsers(senderId, notificationType, message) {
 
         for (const followedId of followedUserIds) {
             await notifyUser(senderId, followedId, notificationType, message);
+            await saveNotificationConditions(senderId, followedId, notificationType, message);
         }
 
         return { success: true };
@@ -162,5 +163,108 @@ async function notifyFollowedUsers(senderId, notificationType, message) {
 
 
 
+async function saveNotification(senderId, receiverId, notificationType, message,notificationTitle) {
+    try {
+        // Save the notification to the database
+            const { data, error } = await supabase
+                .from("notification_table")
+                .insert([
+                    {
+                        sender_id: senderId, // User ID of the sender
+                        receiver_id: receiverId, // User ID of the receiver
+                        notification_type: notificationType, // Friends, Notification
+                        message: message, // Notification message
+                        notification_title: notificationTitle, // Like, Comment, Tag, Event Participation
+                    },
+                ]);
+            console.log("Notification saved:", data);
 
-module.exports = { handlePushNotification ,notifyUser, notifyFollowedUsers };
+            if (error) {
+                console.error("Error saving notification:", error);
+                return { success: false, error: "Failed to save notification" };
+            }
+
+            return { success: true };
+        
+    } catch (err) {
+        console.error("Unexpected error saving notification:", err);
+        return { success: false, error: "Internal server error" };
+    }
+}
+
+
+async function saveNotificationConditions(senderId, receiverId, notificationType, message) {
+
+    // if(notificationType === "Like"){
+    //     await saveNotification(senderId, receiverId, notificationType, message);
+    //     return { success: true };
+    // }
+
+    // if (notificationType === "Comment"){
+    //     await saveNotification(senderId, receiverId, notificationType, message);
+    //     return { success: true };
+    // }
+
+    // if (notificationType === "Tag"){
+    //     await saveNotification(senderId, receiverId, notificationType, message);
+    //     return { success: true };
+    // }
+
+    // if (notificationType === "Event Participation"){
+    //     await saveNotification(senderId, receiverId, notificationType, message);
+    //     return { success: true };
+    // }
+
+    try {
+        console.log("Saving notification process");
+        const friendSection = "activity";
+        const notificationSection = "notification";
+
+        const friendSectionTypes = ["Tag", "Event Participation"];
+        const notificationSectionTypes = ["Like", "Comment", "Follow", "Follow-Request"];
+
+        switch (notificationType) {
+            case "Like":
+                message = "Liked your post";
+                break;
+            case "Comment":
+                message = "Commented on your post";
+                break;
+            case "Tag":
+                message = "Tagged you in a post";
+                break;
+            case "Follow":
+                message = "Started following you";
+                break;
+            case "Follow-Request":
+                message = "Sent you a follow request";
+                break;
+        }
+        
+        if (friendSectionTypes.includes(notificationType)) {
+            await saveNotification(senderId, receiverId, friendSection, message, notificationType);
+            return { success: true };
+        } 
+        
+        else if (notificationSectionTypes.includes(notificationType)) {
+            console.log("Saving notification:", notificationType);
+            await saveNotification(senderId, receiverId, notificationSection, message, notificationType);
+            return { success: true };
+        }    
+        
+        else {
+            console.error("Invalid notification type:", notificationType);
+            return { success: false, error: "Invalid notification type" };
+        }
+    } catch (err) {
+        console.error("Error saving notification condition:", err);
+        return { success: false, error: "Internal server error" };
+    }
+
+
+    
+    
+}
+
+
+module.exports = { handlePushNotification ,notifyUser, notifyFollowedUsers, saveNotificationConditions };
