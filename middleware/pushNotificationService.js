@@ -1,40 +1,61 @@
 const supabase = require('../config/supabase');
 const admin = require('../config/firebase-service-account');
 
+
+
+/**
+ * Handle push notifications for a chat message
+ * This function fetches the recent messages for a chat and sender, and sends a push notification to the receiver
+ * It sends a summarized notification if there are multiple unseen messages
+*/
 async function handlePushNotification(chatId, senderId, receiverId, currentMessage) {
-    // Fetch recent 20 messages for the chat and sender
-    const { data: messages, error } = await supabase
-        .from('ind_message_table')
-        .select('*')
-        .eq('chat_id', chatId)
-        .eq('sender_id', senderId)
-        .order('time_stamp', { ascending: false })
-        .limit(20);
+    try {
+        // Fetch recent 20 messages for the chat and sender
+        const { data: messages, error } = await supabase
+            .from('ind_message_table')
+            .select('*')
+            .eq('chat_id', chatId)
+            .eq('sender_id', senderId)
+            .order('time_stamp', { ascending: false })
+            .limit(20);
 
-    if (error) {
-        console.error("Error fetching messages:", error);
-        return;
+        if (error) {
+            console.error("Error fetching messages:", error);
+            return;
+        }
+
+        // Count unseen messages
+        const unseenMessages = messages.filter((msg) => !msg.is_seen);
+        const { data: user, error: userError } = await supabase
+            .from('User_Info')
+            .select('fcm_token,full_name')
+            .eq('id', senderId)
+            .single();
+
+        if (userError) {
+            console.error("Error fetching user info:", userError);
+            return;
+        }
+
+        if (unseenMessages.length === 1) {
+            // Send current message as notification
+            await sendPushNotification(receiverId, senderId, currentMessage, user.full_name);
+        } else if (unseenMessages.length > 1) {
+            // Send summarized notification
+            const notificationBody = `${unseenMessages.length} new messages from ${user.full_name}`;
+            await sendPushNotification(receiverId, senderId, notificationBody, user.full_name);
+        }
+    } catch (err) {
+        console.error("Error handling push notification:", err);
     }
-
-    // Count unseen messages
-    const unseenMessages = messages.filter((msg) => !msg.is_seen);
-    const { data: user, errorX } = await supabase
-    .from('User_Info')
-    .select('fcm_token,full_name')
-    .eq('id', senderId)
-    .single();
-
-
-    if (unseenMessages.length === 1) {
-        // Send current message as notification
-        await sendPushNotification(receiverId, senderId, currentMessage,user.full_name);
-    } else if (unseenMessages.length > 1) {
-        // Send summarized notification
-        const notificationBody = `${unseenMessages.length} new messages from ${user.full_name}`;
-        await sendPushNotification(receiverId, senderId, notificationBody,user.full_name);
-}
 }
 
+
+
+/**
+ * Send a push notification to a user using their FCM token
+ * This function sends a notification to the user using their FCM token
+ */
 async function sendPushNotification(receiverId, senderId, messageBody,fullName) {
     const { data: user, error } = await supabase
         .from('User_Info')
@@ -81,7 +102,7 @@ async function sendPushNotification(receiverId, senderId, messageBody,fullName) 
  */
 async function notifyUser(senderId, receiverId, notificationType ,message) {
     try {
-        // 1. Fetch receiver's FCM token from Supabase
+        // Fetch receiver's FCM token from Supabase
         const { data: user, error } = await supabase
             .from("User_Info")
             .select("fcm_token")
@@ -93,7 +114,7 @@ async function notifyUser(senderId, receiverId, notificationType ,message) {
             return { success: false, error: "FCM token not found" };
         }
 
-        // 2. Prepare the push notification payload
+        // Prepare the push notification payload
         const payload = {
             token: user.fcm_token,
             notification: {
@@ -102,7 +123,7 @@ async function notifyUser(senderId, receiverId, notificationType ,message) {
             },
         };
 
-        // 3. Send push notification using Firebase
+        // Send push notification using Firebase
         await admin.messaging().send(payload);
 
         console.log(`Notification sent to User ${receiverId}`);
@@ -162,6 +183,9 @@ async function notifyFollowedUsers(senderId, notificationType, message) {
 }
 
 
+/**
+ * Save the notification to the database
+ */
 
 async function saveNotification(senderId, receiverId, notificationType, message,notificationTitle) {
     try {
@@ -193,27 +217,11 @@ async function saveNotification(senderId, receiverId, notificationType, message,
 }
 
 
+/**
+ * Save the notification conditions to the database
+ */
+
 async function saveNotificationConditions(senderId, receiverId, notificationType, message) {
-
-    // if(notificationType === "Like"){
-    //     await saveNotification(senderId, receiverId, notificationType, message);
-    //     return { success: true };
-    // }
-
-    // if (notificationType === "Comment"){
-    //     await saveNotification(senderId, receiverId, notificationType, message);
-    //     return { success: true };
-    // }
-
-    // if (notificationType === "Tag"){
-    //     await saveNotification(senderId, receiverId, notificationType, message);
-    //     return { success: true };
-    // }
-
-    // if (notificationType === "Event Participation"){
-    //     await saveNotification(senderId, receiverId, notificationType, message);
-    //     return { success: true };
-    // }
 
     try {
         console.log("Saving notification process");
@@ -267,4 +275,32 @@ async function saveNotificationConditions(senderId, receiverId, notificationType
 }
 
 
-module.exports = { handlePushNotification ,notifyUser, notifyFollowedUsers, saveNotificationConditions };
+/**
+ * Save the FCM token for a user
+ */
+async function checkAndUpdateFCM (userId, fcmToken) {
+    try {
+        // Update or insert the FCM token for the user
+        const { data, error } = await supabase
+            .from('User_Info')
+            .update({ fcm_token: fcmToken }) // Update the FCM token
+            .eq('id', userId); // Match the row where the id equals userId
+
+        if (error) {
+            console.error("Error saving FCM token:", error);
+            return { success: false, error: "Failed to save FCM token" };
+        }
+
+        console.log("User ID:", userId);
+        console.log("FCM Token:", fcmToken);
+
+        return { success: true };
+        
+    } catch (err) {
+        console.error("Unexpected error:", err);
+        return { success: false, error: "Internal server error" };
+    }
+}
+
+
+module.exports = { handlePushNotification ,notifyUser, notifyFollowedUsers, saveNotificationConditions, checkAndUpdateFCM };

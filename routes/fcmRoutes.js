@@ -1,5 +1,5 @@
 const express = require("express");
-const { notifyUser, notifyFollowedUsers, saveNotificationConditions} = require("../middleware/pushNotificationService");
+const { notifyUser, notifyFollowedUsers, saveNotificationConditions, checkAndUpdateFCM} = require("../middleware/pushNotificationService");
 
 
 const router = express.Router();
@@ -63,6 +63,24 @@ router.post("/send-notification-to-followed", async (req, res) => {
 
     if (result.success) {
         return res.status(200).json({ success: "Push notifications sent to followed users" });
+    } else {
+        return res.status(500).json({ error: result.error });
+    }
+});
+
+
+// Endpoint to save FCM token
+router.post('/fcm-token', async (req, res) => {
+    const { userId, fcmToken } = req.body;
+
+    if (!userId || !fcmToken) {
+        return res.status(400).json({ error: 'userId and fcmToken are required' });
+    }
+
+    const result = await checkAndUpdateFCM(userId, fcmToken);
+
+    if (result.success) {
+        return res.status(200).json({ success: 'FCM token saved successfully' });
     } else {
         return res.status(500).json({ error: result.error });
     }
