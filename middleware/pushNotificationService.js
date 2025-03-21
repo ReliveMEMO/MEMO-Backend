@@ -235,4 +235,29 @@ async function saveNotificationConditions(senderId, receiverId, notificationType
 }
 
 
-module.exports = { handlePushNotification ,notifyUser, notifyFollowedUsers, saveNotificationConditions };
+async function checkAndUpdateFCM (userId, fcmToken) {
+    try {
+        // Update or insert the FCM token for the user
+        const { data, error } = await supabase
+            .from('User_Info')
+            .update({ fcm_token: fcmToken }) // Update the FCM token
+            .eq('id', userId); // Match the row where the id equals userId
+
+        if (error) {
+            console.error("Error saving FCM token:", error);
+            return { success: false, error: "Failed to save FCM token" };
+        }
+
+        console.log("User ID:", userId);
+        console.log("FCM Token:", fcmToken);
+
+        return { success: true };
+        
+    } catch (err) {
+        console.error("Unexpected error:", err);
+        return { success: false, error: "Internal server error" };
+    }
+}
+
+
+module.exports = { handlePushNotification ,notifyUser, notifyFollowedUsers, saveNotificationConditions, checkAndUpdateFCM };

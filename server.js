@@ -19,7 +19,6 @@ app.use(express.json());
 
 // Routes
 app.use('/api/messages', require('./routes/messageRoutes'));
-app.use('/api', require('./controllers/fcmController'));
 app.use('/api', require('./routes/fcmRoutes')); // New push notification route
 app.use('/api', require('./routes/likeRoutes')); // post like count increase and decrease route
 
